@@ -1,0 +1,23 @@
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Token {
+    Identifier(String),
+    NumberLiteral(u64),
+    Inductive,
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    Pipe,
+    Colon,
+    Period,
+    Arrow,
+    Match,
+    Equals,
+    Let,
+    SemiColon,
+    OpenParen,
+    CloseParen,
+    OpenBrace,
+    CloseBrace,
+    EndOfFile,
+}
