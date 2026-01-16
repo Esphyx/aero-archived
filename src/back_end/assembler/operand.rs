@@ -4,4 +4,5 @@ use crate::back_end::assembler::register::Register;
 pub enum Operand {
     Imm(u32),
     Reg(Register),
+    Symbol(String),
 }

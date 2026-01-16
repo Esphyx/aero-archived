@@ -1,7 +1,6 @@
-use crate::linker::headers::{
-    ToBytes, coff_file_header::COFFFileHeader, image_optional::ImageOptionalHeader64,
-    section::SectionHeader,
-};
+use crate::back_end::assembler::headers::CoffFileHeader;
+
+
 
 pub enum PESection {
     Code(Vec<u8>),
@@ -50,7 +49,7 @@ impl PortableExecutable {
 
         let signature = b"PE\0\0";
 
-        let coff_file_header = COFFFileHeader::default();
+        let coff_file_header = CoffFileHeader::default();
 
         buffer
     }

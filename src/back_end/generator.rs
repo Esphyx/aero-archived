@@ -8,6 +8,14 @@ pub fn generate(ast: &AbstractSyntaxTree) -> Vec<Instruction> {
 
     generate_expression(&ast.expression, &mut instructions);
 
+    instructions.push(Instruction::MOV {
+        dst: Register::RCX,
+        src: Operand::Reg(Register::RAX),
+    });
+    instructions.push(Instruction::CALL {
+        target: Operand::Symbol("ExitProcess".to_string()),
+    });
+
     instructions
 }
 
