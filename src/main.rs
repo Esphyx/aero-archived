@@ -1,11 +1,10 @@
-use crate::{lexer::LexicalAnalizer, parser::Parser};
+use crate::{
+    back_end::{assembler::assemble, generator::generate, linker::link},
+    front_end::{lexer::LexicalAnalizer, parser::Parser},
+};
 
-mod ast;
-mod checker;
-mod evaluator;
-mod lexer;
-mod parser;
-mod token;
+mod back_end;
+mod front_end;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = include_str!("../input.aero");
@@ -13,11 +12,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let lexer = LexicalAnalizer::new(input);
     let mut parser = Parser::new(lexer)?;
 
-    let expression = parser.parse_expression()?;
+    let ast = parser.parse()?;
 
-    // let expected_type = type_check(&expression, &HashMap::new())?;
+    println!("{:#?}", ast);
 
-    println!("{:#?}", expression);
+    let instructions = generate(&ast);
+
+    println!("{:?}", instructions);
+
+    let binary = assemble(instructions);
+
+    link(binary)?;
 
     Ok(())
 }

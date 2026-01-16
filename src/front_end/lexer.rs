@@ -1,4 +1,4 @@
-use crate::token::Token;
+use crate::front_end::token::Token;
 
 #[derive(Debug)]
 pub enum LexicalError {
@@ -66,12 +66,15 @@ impl LexicalAnalizer {
         while let Some(c) = self.current() {
             if c.is_ascii_digit() {
                 literal.push(c);
+                self.advance();
+            } else {
+                break;
             }
         }
 
         Ok(Token::NumberLiteral(
             literal
-                .parse::<u64>()
+                .parse::<u32>()
                 .map_err(|_| LexicalError::ParsingNumberLiteral)?,
         ))
     }

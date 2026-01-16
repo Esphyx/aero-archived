@@ -1,7 +1,7 @@
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token {
     Identifier(String),
-    NumberLiteral(u64),
+    NumberLiteral(u32),
     Inductive,
     Plus,
     Minus,
