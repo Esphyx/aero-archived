@@ -67,7 +67,7 @@ impl Instruction {
                     bytes.push(0x01); // OPCODE
                     bytes.push(modrm(reg.reg_code(), dst.reg_code()));
                 }
-                Operand::Symbol(name) => {
+                Operand::Symbol(_name) => {
                     todo!()
                 }
             },
@@ -84,7 +84,7 @@ impl Instruction {
                         bytes.push(0x29); // OPCODE
                         bytes.push(modrm(reg.reg_code(), dst.reg_code()));
                     }
-                    Operand::Symbol(name) => {
+                    Operand::Symbol(_name) => {
                         todo!()
                     }
                 }
@@ -99,7 +99,7 @@ impl Instruction {
             }
             Instruction::CALL { target } => match target {
                 Operand::Imm(_) => todo!(),
-                Operand::Reg(register) => todo!(),
+                Operand::Reg(_) => todo!(),
                 Operand::Symbol(name) => {
                     bytes.push(0xE8);
                     bytes.extend(&0u32.to_le_bytes()); // PLACEHOLDER FOR LINKER
