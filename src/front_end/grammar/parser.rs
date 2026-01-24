@@ -1,236 +1,261 @@
-// use std::fmt::Display;
+use std::fmt::Display;
 
-// use crate::front_end::{
-//     grammar::{
-//         lexer::{LexicalAnalizer, LexicalError},
-//         token::TokenKind,
-//     },
-//     kernel::{
-//         cic::{AST, ConstName, Environment, Identifier, Universe},
-//         inductive::{Constructor, Inductive},
-//         term::Term,
-//     },
-// };
+use crate::front_end::{
+    grammar::{
+        lexer::LexicalError,
+        token::{Token, TokenKind},
+    },
+    kernel::parser_ast::{
+        SourceAST, SourceBuiltinType, SourceConstructor, SourceNamespace, SourceIdentifier, SourceInductive, SourceTerm,
+    },
+};
 
-// #[derive(Debug)]
-// pub enum ParseError {
-//     ExpectedToken { expected: TokenKind, found: TokenKind },
-//     ExpectedIdentifier { found: TokenKind },
-//     ExpectedExpression { found: TokenKind },
-//     ExpectedType { found: TokenKind },
-//     LexicalError(LexicalError),
-// }
+#[allow(unused)]
+#[derive(Debug)]
+pub enum ParseError {
+    ExpectedToken {
+        expected: TokenKind,
+        found: TokenKind,
+    },
+    ExpectedIdentifier {
+        found: TokenKind,
+    },
+    ExpectedExpression {
+        found: TokenKind,
+    },
+    ExpectedType {
+        found: TokenKind,
+    },
+    LexicalError(LexicalError),
+    OutOfTokens,
+}
 
-// impl Display for ParseError {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "{:?}", self)
-//     }
-// }
+impl Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
 
-// impl std::error::Error for ParseError {}
+impl std::error::Error for ParseError {}
 
-// pub struct Parser {
-//     lexer: LexicalAnalizer,
-//     current: TokenKind,
-// }
+pub struct Parser {
+    tokens: Vec<Token>,
+    position: usize,
+}
 
-// impl Parser {
-//     pub fn new(lexer: LexicalAnalizer) -> Result<Self, ParseError> {
-//         let current = TokenKind::EndOfFile;
-//         let mut ret = Self { lexer, current };
-//         ret.advance()?;
-//         Ok(ret)
-//     }
+impl Parser {
+    pub fn new(tokens: Vec<Token>) -> Result<Self, ParseError> {
+        Ok(Self {
+            tokens,
+            position: 0,
+        })
+    }
 
-//     fn advance(&mut self) -> Result<(), ParseError> {
-//         loop {
-//             self.current = self
-//                 .lexer
-//                 .next_token()
-//                 .map_err(|e| ParseError::LexicalError(e))?;
+    fn current(&mut self) -> Result<&Token, ParseError> {
+        self.tokens
+            .get(self.position)
+            .ok_or(ParseError::OutOfTokens)
+    }
 
-//             if !matches!(self.current, TokenKind::Comment(_)) {
-//                 break;
-//             }
-//         }
+    fn advance(&mut self) -> Result<(), ParseError> {
+        loop {
+            self.position += 1;
 
-//         Ok(())
-//     }
+            if !matches!(self.current()?.kind, TokenKind::Comment) {
+                break;
+            }
+        }
 
-//     fn expect(&mut self, expected: TokenKind) -> Result<(), ParseError> {
-//         if self.current == expected {
-//             self.advance()
-//         } else {
-//             Err(ParseError::ExpectedToken {
-//                 expected,
-//                 found: self.current.clone(),
-//             })
-//         }
-//     }
+        Ok(())
+    }
 
-//     fn expect_identifier(&mut self) -> Result<String, ParseError> {
-//         if let TokenKind::Identifier(n) = &self.current {
-//             let out = n.clone();
-//             self.advance()?;
-//             Ok(out)
-//         } else {
-//             Err(ParseError::ExpectedIdentifier {
-//                 found: self.current.clone(),
-//             })
-//         }
-//     }
+    fn expect(&mut self, expected: TokenKind) -> Result<(), ParseError> {
+        if self.current()?.kind == expected {
+            self.advance()
+        } else {
+            Err(ParseError::ExpectedToken {
+                expected,
+                found: self.current()?.kind,
+            })
+        }
+    }
 
-//     pub fn parse(&mut self) -> Result<AST, ParseError> {
-//         Ok(AST {
-//             environment: self.parse_environment()?,
-//         })
-//     }
+    fn parse_identifier(&mut self) -> Result<SourceIdentifier, ParseError> {
+        if let TokenKind::Identifier = &self.current()?.kind {
+            let id = SourceIdentifier {
+                position: self.current()?.position,
+                length: self.current()?.length,
+            };
+            self.advance()?;
+            Ok(id)
+        } else {
+            Err(ParseError::ExpectedIdentifier {
+                found: self.current()?.kind,
+            })
+        }
+    }
 
-//     fn parse_environment(&mut self) -> Result<Environment, ParseError> {
-//         let mut inductives = Vec::new();
-//         let mut constants = Vec::new();
+    pub fn parse(&mut self) -> Result<SourceAST, ParseError> {
+        Ok(SourceAST {
+            environment: self.parse_environment()?,
+        })
+    }
 
-//         while !matches!(self.current, TokenKind::EndOfFile) {
-//             match &self.current {
-//                 TokenKind::Inductive => {
-//                     inductives.push(self.parse_inductive()?);
-//                 }
-//                 TokenKind::Fn => {
-//                     let (name, ty) = self.parse_fn()?;
-//                     constants.push((ConstName(name), ty));
-//                 }
-//                 _ => {
-//                     return Err(ParseError::ExpectedToken {
-//                         expected: TokenKind::Inductive, // or function
-//                         found: self.current.clone(),
-//                     });
-//                 }
-//             }
-//         }
+    fn parse_environment(&mut self) -> Result<SourceNamespace, ParseError> {
+        let mut inductives = Vec::new();
+        let mut constants = Vec::new();
 
-//         Ok(Environment {
-//             inductives,
-//             constants,
-//         })
-//     }
+        while !matches!(self.current()?.kind, TokenKind::EndOfFile) {
+            match &self.current()?.kind {
+                TokenKind::Inductive => {
+                    inductives.push(self.parse_inductive()?);
+                }
+                TokenKind::Fn => {
+                    let (name, ty) = self.parse_fn()?;
+                    constants.push((name, ty));
+                }
+                _ => {
+                    return Err(ParseError::ExpectedToken {
+                        expected: TokenKind::Inductive, // or function
+                        found: self.current()?.kind,
+                    });
+                }
+            }
+        }
 
-//     fn parse_fn(&mut self) -> Result<(String, Term), ParseError> {
-//         // DEFINITION
-//         self.expect(TokenKind::Fn)?;
-//         let name = self.expect_identifier()?;
+        Ok(SourceNamespace {
+            inductives,
+            constants,
+        })
+    }
 
-//         // PARAMETERS
-//         let mut params = Vec::new();
-//         while matches!(self.current, TokenKind::OpenParen) {
-//             self.advance()?;
-//             let param_name = self.expect_identifier()?;
-//             self.expect(TokenKind::Colon)?;
-//             let param_type = self.parse_term()?;
-//             self.expect(TokenKind::CloseParen)?;
-//             params.push((param_name, param_type));
-//         }
+    fn parse_fn(&mut self) -> Result<(SourceIdentifier, SourceTerm), ParseError> {
+        // DEFINITION
+        self.expect(TokenKind::Fn)?;
+        let name = self.parse_identifier()?;
 
-//         // RETURN TYPE
+        // PARAMETERS
+        let mut parameters = Vec::new();
+        while matches!(self.current()?.kind, TokenKind::OpenParen) {
+            self.advance()?;
+            let param_name = self.parse_identifier()?;
+            self.expect(TokenKind::Colon)?;
+            let param_type = self.parse_term()?;
+            self.expect(TokenKind::CloseParen)?;
+            parameters.push((param_name, param_type));
+        }
 
-//         self.expect(TokenKind::Colon)?;
-//         let _ty = self.parse_term()?;
+        // RETURN TYPE
 
-//         // BODY
-//         self.expect(TokenKind::OpenBrace)?;
-//         let body = self.parse_term()?;
-//         self.expect(TokenKind::CloseBrace)?;
+        self.expect(TokenKind::Colon)?;
+        let _return_type = self.parse_term()?;
 
-//         let mut lambda = body;
-//         for (param_name, param_type) in params.into_iter().rev() {
-//             lambda = Term::Lambda {
-//                 parameter: Identifier { name: param_name },
-//                 r#type: Box::new(param_type),
-//                 body: Box::new(lambda),
-//             }
-//         }
+        // BODY
+        self.expect(TokenKind::OpenBrace)?;
+        let body = self.parse_term()?;
+        self.expect(TokenKind::CloseBrace)?;
 
-//         Ok((name, lambda))
-//     }
+        let mut lambda = body;
+        for (parameter, parameter_type) in parameters.into_iter().rev() {
+            lambda = SourceTerm::Lambda {
+                parameter,
+                r#type: Box::new(parameter_type),
+                body: Box::new(lambda),
+            }
+        }
 
-//     fn parse_inductive(&mut self) -> Result<Inductive, ParseError> {
-//         self.expect(TokenKind::Inductive)?;
-//         let name = self.expect_identifier()?;
+        Ok((name, lambda))
+    }
 
-//         self.expect(TokenKind::Colon)?;
-//         let ty = self.parse_term()?;
+    fn parse_inductive(&mut self) -> Result<SourceInductive, ParseError> {
+        self.expect(TokenKind::Inductive)?;
+        let name = self.parse_identifier()?;
 
-//         self.expect(TokenKind::OpenBrace)?;
+        self.expect(TokenKind::Colon)?;
+        let ty = self.parse_term()?;
 
-//         let mut constructors = Vec::new();
-//         let mut index = 0;
-//         while !matches!(self.current, TokenKind::CloseBrace) {
-//             let cname = self.expect_identifier()?;
-//             self.expect(TokenKind::Colon)?;
-//             let cty = self.parse_term()?;
-//             constructors.push(Constructor {
-//                 name: cname,
-//                 r#type: cty,
-//                 index,
-//             });
-//             index += 1;
+        self.expect(TokenKind::OpenBrace)?;
 
-//             if matches!(self.current, TokenKind::Comma) {
-//                 self.advance()?;
-//             }
-//         }
-//         self.expect(TokenKind::CloseBrace)?;
+        let mut constructors = Vec::new();
+        let mut index = 0;
+        while !(matches!(
+            self.current()?.kind,
+            TokenKind::CloseBrace | TokenKind::SemiColon
+        )) {
+            let cname = self.parse_identifier()?;
+            self.expect(TokenKind::Colon)?;
+            let cty = self.parse_term()?;
+            constructors.push(SourceConstructor {
+                name: cname,
+                r#type: cty,
+                index,
+            });
+            index += 1;
 
-//         let eliminator = ConstName(format!("elim_{}", name));
-//         Ok(Inductive {
-//             name,
-//             r#type: ty,
-//             constructors,
-//             eliminator,
-//         })
-//     }
+            if matches!(self.current()?.kind, TokenKind::Comma) {
+                self.advance()?;
+            }
+        }
+        self.expect(TokenKind::SemiColon)?;
+        let eliminator = self.parse_identifier()?;
 
-//     fn parse_term(&mut self) -> Result<Term, ParseError> {
-//         let mut lhs = match &self.current {
-//             TokenKind::Type => {
-//                 self.advance()?;
-//                 Ok(Term::Universe(Universe::Type(0)))
-//             }
-//             TokenKind::Identifier(name) => {
-//                 let id = Identifier { name: name.clone() };
-//                 self.advance()?;
-//                 Ok(Term::Identifier(id))
-//             }
-//             TokenKind::OpenParen => {
-//                 self.advance()?;
-//                 let t = self.parse_term()?;
-//                 self.expect(TokenKind::CloseParen)?;
-//                 Ok(t)
-//             }
-//             TokenKind::OpenBracket => {
-//                 self.advance()?;
-//                 let inner = self.parse_term()?;
-//                 self.expect(TokenKind::CloseBracket)?;
+        self.expect(TokenKind::CloseBrace)?;
 
-//                 Ok(Term::App {
-//                     function: Box::new(Term::Const(ConstName("Array".into()))),
-//                     argument: Box::new(inner),
-//                 })
-//             }
-//             _ => Err(ParseError::ExpectedType {
-//                 found: self.current.clone(),
-//             }),
-//         }?;
+        Ok(SourceInductive {
+            name,
+            r#type: ty,
+            constructors,
+            eliminator,
+        })
+    }
 
-//         while matches!(self.current, TokenKind::Arrow) {
-//             self.advance()?;
-//             let rhs = self.parse_term()?;
-//             lhs = Term::Pi {
-//                 dependent: Identifier { name: "_".into() },
-//                 from_type: Box::new(lhs),
-//                 to_type: Box::new(rhs),
-//             }
-//         }
+    fn parse_term(&mut self) -> Result<SourceTerm, ParseError> {
+        let mut lhs = match &self.current()?.kind {
+            TokenKind::U8 => {
+                self.advance()?;
+                Ok(SourceTerm::Builtin(SourceBuiltinType::U8))
+            }
+            TokenKind::Prop => {
+                self.advance()?;
+                Ok(SourceTerm::Builtin(SourceBuiltinType::Prop))
+            }
+            TokenKind::Type => {
+                self.advance()?;
+                Ok(SourceTerm::Builtin(SourceBuiltinType::Type(0))) // DEFAULT TO TYPE 0 FOR NOW
+            }
+            TokenKind::Identifier => Ok(SourceTerm::Identifier(self.parse_identifier()?)),
+            TokenKind::OpenParen => {
+                self.advance()?;
+                let t = self.parse_term()?;
+                self.expect(TokenKind::CloseParen)?;
+                Ok(t)
+            }
+            TokenKind::OpenBracket => {
+                self.advance()?;
+                let inner = self.parse_term()?;
+                self.expect(TokenKind::CloseBracket)?;
+                Ok(SourceTerm::Builtin(SourceBuiltinType::Array {
+                    dependent: Box::new(inner),
+                }))
+            }
+            _ => Err(ParseError::ExpectedType {
+                found: self.current()?.kind,
+            }),
+        }?;
 
-//         Ok(lhs)
-//     }
-// }
+        while matches!(self.current()?.kind, TokenKind::Arrow) {
+            self.advance()?;
+            let rhs = self.parse_term()?;
+            lhs = SourceTerm::Pi {
+                dependent: SourceIdentifier {
+                    position: 0,
+                    length: 0,
+                }, // NOT IDIOMATIC
+                from_type: Box::new(lhs),
+                to_type: Box::new(rhs),
+            }
+        }
+
+        Ok(lhs)
+    }
+}

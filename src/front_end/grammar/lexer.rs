@@ -1,17 +1,26 @@
-use crate::front_end::grammar::token::TokenKind;
+use std::fmt::Display;
+
+use crate::front_end::grammar::token::{Token, TokenKind};
 
 #[derive(Debug)]
 pub enum LexicalError {
-    UnknownToken { string: String },
-    ParsingNumberLiteral,
+    UnknownToken,
 }
 
-pub struct LexicalAnalizer {
+impl Display for LexicalError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::error::Error for LexicalError {}
+
+pub struct LexicalAnalyzer {
     input: Vec<char>,
     position: usize,
 }
 
-impl LexicalAnalizer {
+impl LexicalAnalyzer {
     pub fn new(input: &str) -> Self {
         let input = input.chars().collect();
         Self { input, position: 0 }
@@ -36,7 +45,7 @@ impl LexicalAnalizer {
             .all(|(a, b)| *a == b)
     }
 
-    fn identifier_or_keyword(&mut self) -> TokenKind {
+    fn identifier_or_keyword(&mut self) -> Token {
         let mut id = String::new();
 
         while let Some(c) = self.current() {
@@ -48,14 +57,15 @@ impl LexicalAnalizer {
             }
         }
 
-        match id.as_str() {
+        let kind = match id.as_str() {
             "let" => TokenKind::Let,
             "match" => TokenKind::Match,
             "inductive" => TokenKind::Inductive,
             "partial" => TokenKind::Partial,
             "fn" => TokenKind::Fn,
-            // "u8" => Token::U8,
-            // "u32" => Token::U32,
+            "u8" => TokenKind::U8,
+            // "u32" => TokenKind::U32,
+            "Prop" => TokenKind::Prop,
             "Type" => TokenKind::Type,
             "do" => TokenKind::Do,
             "while" => TokenKind::While,
@@ -64,14 +74,15 @@ impl LexicalAnalizer {
             "continue" => TokenKind::Continue,
             "external" => TokenKind::External,
             _ => TokenKind::Identifier,
-        }
+        };
+        Token::new(kind, self.position - id.len(), id.len())
     }
 
     fn string_literal(&mut self) -> Result<TokenKind, LexicalError> {
         todo!()
     }
 
-    fn number_literal(&mut self) -> Result<TokenKind, LexicalError> {
+    fn number_literal(&mut self) -> Result<Token, LexicalError> {
         let mut literal = String::new();
 
         while let Some(c) = self.current() {
@@ -83,11 +94,11 @@ impl LexicalAnalizer {
             }
         }
 
-        // literal
-        //     .parse::<u32>()
-        //     .map_err(|_| LexicalError::ParsingNumberLiteral)?,
-
-        Ok(TokenKind::NumberLiteral)
+        Ok(Token::new(
+            TokenKind::NumberLiteral,
+            self.position - literal.len(),
+            literal.len(),
+        ))
     }
 
     fn skip_whitespace(&mut self) {
@@ -96,7 +107,7 @@ impl LexicalAnalizer {
         }
     }
 
-    fn comment(&mut self) -> TokenKind {
+    fn comment(&mut self) -> Token {
         let mut comment_text = String::new();
 
         while let Some(c) = self.current() {
@@ -107,19 +118,35 @@ impl LexicalAnalizer {
             self.advance();
         }
 
-        TokenKind::Comment
+        Token::new(TokenKind::Comment, 0, 0)
     }
 
-    pub fn next_token(&mut self) -> Result<TokenKind, LexicalError> {
+    pub fn tokens(&mut self) -> Result<Vec<Token>, LexicalError> {
+        let mut tokens = Vec::new();
+
+        loop {
+            let token = self.next_token()?;
+            if matches!(token.kind, TokenKind::EndOfFile) {
+                tokens.push(token);
+                break;
+            }
+
+            tokens.push(token);
+        }
+
+        Ok(tokens)
+    }
+
+    pub fn next_token(&mut self) -> Result<Token, LexicalError> {
         self.skip_whitespace();
 
         let Some(c) = self.current() else {
-            return Ok(TokenKind::EndOfFile);
+            return Ok(Token::new(TokenKind::EndOfFile, self.position, 0));
         };
 
         if self.starts_with("->") {
             self.advance_n(2);
-            return Ok(TokenKind::Arrow);
+            return Ok(Token::new(TokenKind::Arrow, self.position, 2));
         }
 
         if self.starts_with("//") {
@@ -135,7 +162,7 @@ impl LexicalAnalizer {
             return self.number_literal();
         }
 
-        let token = match c {
+        let kind = match c {
             '+' => TokenKind::Plus,
             '-' => TokenKind::Minus,
             '*' => TokenKind::Star,
@@ -154,11 +181,11 @@ impl LexicalAnalizer {
             ')' => TokenKind::CloseParen,
             '[' => TokenKind::OpenBracket,
             ']' => TokenKind::CloseBracket,
-            _ => return Err(LexicalError::UnknownToken { string: c.into() }),
+            _ => return Err(LexicalError::UnknownToken),
         };
 
         self.advance();
 
-        Ok(token)
+        Ok(Token::new(kind, self.position - 1, 1))
     }
 }

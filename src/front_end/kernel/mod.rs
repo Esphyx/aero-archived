@@ -1,5 +1,4 @@
-pub mod builtin;
 pub mod checker;
-pub mod cic;
-pub mod inductive;
-pub mod term;
+pub mod debruijn;
+pub mod parser_ast;
+pub mod name_resolution;

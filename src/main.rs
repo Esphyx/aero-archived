@@ -2,7 +2,10 @@ use std::{env, fs::File, io::Write, process::Command};
 
 use crate::{
     back_end::assembler::{ToBytes, coff::CommonObject},
-    front_end::grammar::token::GrammarParser,
+    front_end::{
+        grammar::{lexer::LexicalAnalyzer, parser::Parser},
+        kernel::debruijn::convert_parser_ast_to_db,
+    },
 };
 
 mod back_end;
@@ -11,22 +14,27 @@ mod front_end;
 // constant folding
 // three-address code
 // register allocation
-//
+
+// LEXER -> PARSER -> SOURCE AST -> (DE BRUIJN INDICES & GLOBAL NAME RESOLUTION) -> TYPE CHECKING
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = include_str!("../input.aero");
 
-    let lexer = GrammarParser::new("->");
+    let tokens = LexicalAnalyzer::new(input).tokens()?;
 
-    let tokens = lexer.tokens_at(0);
+    let ast = Parser::new(tokens)?.parse()?;
 
-    println!("{:#?}", tokens);
+    println!("{:#?}", ast);
 
-    // let mut parser = Parser::new(lexer)?;
+    let ast_db = convert_parser_ast_to_db(&ast, input);
 
-    // let ast = parser.parse()?;
+    // match ast_db {
+    // front_end::kernel::debruijn_ast::ErrorDB::Unbound { id } => {
+    // println!("{}", id.resolve(input))
+    // },
+    // }
 
-    // println!("{:#?}", ast);
+    println!("{:#?}", ast_db);
 
     // let instructions = generate(&ast);
     // let common_object = assemble(instructions);

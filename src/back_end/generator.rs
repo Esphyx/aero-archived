@@ -1,6 +1,6 @@
-use crate::{back_end::assembler::instruction::Instruction, front_end::kernel::cic::AST};
+use crate::{back_end::assembler::instruction::Instruction, front_end::kernel::parser_ast::SourceAST};
 
-pub fn generate(_ast: &AST) -> Vec<Instruction> {
+pub fn generate(_ast: &SourceAST) -> Vec<Instruction> {
     todo!()
     // let mut instructions = Vec::new();
 
