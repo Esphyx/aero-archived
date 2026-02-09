@@ -23,7 +23,7 @@ pub enum TokenKind {
     // KEYWORDS
     Todo, Total, Partial, Inductive, Fn, External,
     // PRIMITIVES
-    Unit, Prop, Type, U8,
+    Unit, Prop, Type, U8, WriteU8, ReadU8, AddU8,
     // OPERATORS
     Plus, Minus, Star, Slash, Pipe, Greater, Less, ShiftRight, ShiftLeft,
     // DELIMITERS

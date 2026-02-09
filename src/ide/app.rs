@@ -4,26 +4,32 @@ use ratatui::{
     DefaultTerminal, Frame,
     buffer::Buffer,
     crossterm::event::{self, Event, KeyCode, KeyModifiers},
-    layout::Rect,
-    style::{Color, Style},
+    layout::{Offset, Rect},
     widgets::Widget,
 };
 
-use super::{super::compiler::front_end::grammar::token::TokenKind, Config, Editor, Theme};
+use super::{Config, Editor, EditorBuffer};
 
-pub struct App {
-    pub editor: Editor,
-    pub config: Option<Config>,
+pub struct App<'a> {
+    pub editor: Editor<'a>,
+    pub config: &'a Config,
     pub exit: bool,
 }
 
-impl App {
+impl<'a> App<'a> {
+    pub fn new(config: &'a Config, buffer: EditorBuffer) -> Self {
+        Self {
+            editor: Editor::new(buffer, &config.editor),
+            config,
+            exit: false,
+        }
+    }
+
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
         while !self.exit {
             terminal.draw(|frame| self.draw(frame))?;
             self.handle_events()?;
         }
-
         Ok(())
     }
 
@@ -32,17 +38,17 @@ impl App {
         let cursor_position = frame
             .area()
             .as_position()
-            .offset(self.editor.cursor_offset());
+            .offset(self.editor.cursor_offset())
+            .offset(Offset {
+                x: self.editor.gutter.width as i32,
+                y: 0,
+            });
 
         frame.set_cursor_position(cursor_position);
     }
 
-    fn reload(&mut self) {
-        todo!()
-    }
-
     fn save_and_exit(&mut self) -> io::Result<()> {
-        self.editor.save_to_file()?;
+        self.editor.buffer.save_to_file()?;
         self.exit = true;
         Ok(())
     }
@@ -54,21 +60,8 @@ impl App {
                     self.exit = true;
                 } else if key.modifiers == KeyModifiers::CONTROL && key.code == KeyCode::Char('s') {
                     self.save_and_exit()?;
-                } else if key.modifiers == KeyModifiers::CONTROL && key.code == KeyCode::Char('r') {
-                    self.reload();
                 } else {
-                    match key.code {
-                        KeyCode::Char(c) => self.editor.insert_char(c),
-                        KeyCode::Enter => self.editor.new_line(),
-                        KeyCode::Left => self.editor.left(),
-                        KeyCode::Right => self.editor.right(),
-                        KeyCode::Up => self.editor.up(),
-                        KeyCode::Down => self.editor.down(),
-                        KeyCode::Backspace => self.editor.delete_char(),
-                        KeyCode::Tab => self.editor.indent(),
-                        _ => {}
-                    }
-                    self.editor.analyze();
+                    self.editor.handle_key(key)?;
                 }
             }
             _ => {}
@@ -77,71 +70,29 @@ impl App {
     }
 }
 
-fn style_for_token_kind(kind: TokenKind, theme: &Theme) -> Style {
-    let style = Style::default();
-
-    let fg = Theme::to_color(match kind {
-        TokenKind::Identifier => &theme.identifier,
-        TokenKind::Comment => &theme.comment,
-        TokenKind::Type
-        | TokenKind::U8
-        | TokenKind::Unit
-        | TokenKind::Fn
-        | TokenKind::Let
-        | TokenKind::Inductive
-        | TokenKind::Assign => &theme.type_name,
-        TokenKind::SemiColon
-        | TokenKind::Colon
-        | TokenKind::Comma
-        | TokenKind::Arrow
-        | TokenKind::OpenBrace
-        | TokenKind::CloseBrace
-        | TokenKind::OpenParen
-        | TokenKind::CloseParen => &theme.punctuation,
-        _ => &theme.default,
-    })
-    .unwrap_or(Color::default());
-
-    style.fg(fg)
-}
-
-impl Widget for &App {
+impl<'a> Widget for &App<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        for (y, line) in self.editor.content.iter().enumerate() {
-            if y >= area.height as usize {
-                break;
-            }
+        let gutter_area = Rect {
+            x: area.x,
+            y: area.y,
+            width: self.editor.gutter.width as u16,
+            height: area.height,
+        };
 
-            for (x, c) in line.chars().enumerate() {
-                if x >= area.width as usize {
-                    break;
-                }
+        let editor_area = Rect {
+            x: area.x + self.editor.gutter.width as u16,
+            y: area.y,
+            width: area.width.saturating_sub(self.editor.gutter.width as u16),
+            height: area.height,
+        };
 
-                let global_position = self.editor.content[..y]
-                    .iter()
-                    .map(|l| l.len() + 1)
-                    .sum::<usize>()
-                    + x;
-                let style = self
-                    .editor
-                    .tokens
-                    .iter()
-                    .find(|t| {
-                        global_position >= t.position && global_position < t.position + t.length
-                    })
-                    .map(|t| {
-                        self.config.as_ref().map(|config| {
-                            config
-                                .theme()
-                                .map(|theme| style_for_token_kind(t.kind, theme))
-                        })
-                    })
-                    .flatten()
-                    .flatten()
-                    .unwrap_or(Style::default());
+        let theme = self.config.theme().expect("Theme is None");
 
-                buf.set_string(area.x + x as u16, area.y + y as u16, c.to_string(), style);
-            }
-        }
+        self.editor
+            .gutter
+            .render(gutter_area, buf, theme, &self.editor.cursor);
+        self.editor
+            .buffer
+            .render(editor_area, buf, theme, &self.editor.cursor);
     }
 }

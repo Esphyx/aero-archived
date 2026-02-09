@@ -65,6 +65,9 @@ impl LexicalAnalyzer {
             "prop" => TokenKind::Prop,
             "type" => TokenKind::Type,
             "unit" => TokenKind::Unit,
+            "write_u8" => TokenKind::WriteU8,
+            "read_u8" => TokenKind::ReadU8,
+            "add_u8" => TokenKind::AddU8,
             _ => TokenKind::Identifier,
         };
         Token::new(kind, self.position - id.len(), id.len())
@@ -98,6 +101,8 @@ impl LexicalAnalyzer {
     fn comment(&mut self) -> Token {
         let mut comment_text = String::new();
 
+        let saved_position = self.position;
+
         while let Some(c) = self.current() {
             if c == '\n' {
                 break;
@@ -106,7 +111,11 @@ impl LexicalAnalyzer {
             self.advance();
         }
 
-        Token::new(TokenKind::Comment, 0, 0)
+        Token::new(
+            TokenKind::Comment,
+            saved_position - 2,
+            comment_text.len() + 2,
+        )
     }
 
     pub fn tokens(&mut self) -> Result<Vec<Token>, LexicalError> {
