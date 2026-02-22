@@ -1,6 +1,6 @@
 use front_end::{
-    grammar::{ast::SourceAST, lexer::LexicalAnalyzer, parser::Parser},
-    kernel::{checker::reducer, de_bruijn::ast_to_de_bruijn},
+    grammar::{ast::SourceAST, lexer::Lexer, parser::Parser},
+    kernel::{checker::reducer, de_bruijn::program::Program},
 };
 
 pub mod back_end;
@@ -14,7 +14,9 @@ pub mod front_end;
 // LEXER -> PARSER -> SOURCE AST -> DE BRUIJN & GLOBAL NAME RES -> TYPE CHECKING
 
 pub fn compile(input: String) -> Result<(), Box<dyn std::error::Error>> {
-    let tokens = LexicalAnalyzer::new(input.clone()).tokens()?;
+    let tokens = Lexer::new(input.clone()).tokens()?;
+
+    // println!("{:#?}", tokens);
 
     let mut parser = Parser::new(tokens, input.clone())?;
 
@@ -22,7 +24,7 @@ pub fn compile(input: String) -> Result<(), Box<dyn std::error::Error>> {
 
     println!("{:#?}", ast);
 
-    let program = ast_to_de_bruijn(&ast);
+    let program = Program::from(&ast);
 
     println!("{:#?}", program);
 

@@ -20,6 +20,9 @@ impl SourceNamespace {
                 TokenKind::Fn => {
                     constants.push(SourceFunction::parse(parser)?);
                 }
+                TokenKind::Comment => {
+                    parser.advance()?;
+                }
                 _ => {
                     return Err(ParseError::ExpectedToken {
                         expected: vec![TokenKind::Fn, TokenKind::Inductive],

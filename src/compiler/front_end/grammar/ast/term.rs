@@ -1,9 +1,12 @@
-use super::{ParseError, Parser, SourceBuiltinType, TokenKind, identifier::SourceIdentifier};
+use super::{
+    ParseError, Parser, SourceBuiltin, SourceBuiltinType, SourcePrimitive, TokenKind,
+    identifier::SourceIdentifier,
+};
 
 #[derive(Debug, Clone)]
 pub enum SourceTerm {
     Identifier(SourceIdentifier),
-    Builtin(SourceBuiltinType),
+    Builtin(SourceBuiltin),
     Let {
         name: SourceIdentifier,
         type_specifier: Box<Option<Self>>,
@@ -33,6 +36,8 @@ impl SourceTerm {
             parser.current()?.kind,
             TokenKind::Identifier
                 | TokenKind::U8
+                | TokenKind::ReadU8
+                | TokenKind::WriteU8
                 | TokenKind::Prop
                 | TokenKind::Type
                 | TokenKind::OpenParen
@@ -60,23 +65,34 @@ impl SourceTerm {
     }
 
     fn parse_atom(parser: &mut Parser) -> Result<Self, ParseError> {
-        match &parser.current()?.kind {
-            TokenKind::U8 => {
-                parser.advance()?;
-                Ok(Self::Builtin(SourceBuiltinType::U8))
-            }
-            TokenKind::Prop => {
-                parser.advance()?;
-                Ok(Self::Builtin(SourceBuiltinType::Prop))
-            }
-            TokenKind::Type => {
-                parser.advance()?;
-                Ok(Self::Builtin(SourceBuiltinType::Type(0))) // TODO: for now assume Type 0
-            }
-            TokenKind::Unit => {
-                parser.advance()?;
-                Ok(Self::Builtin(SourceBuiltinType::Unit))
-            }
+        let kind = parser.current()?.kind;
+
+        fn parse_primitive(
+            parser: &mut Parser,
+            primitive: SourcePrimitive,
+        ) -> Result<SourceTerm, ParseError> {
+            parser.advance()?;
+            Ok(SourceTerm::Builtin(SourceBuiltin::Primitive(primitive)))
+        }
+
+        fn parse_type(
+            parser: &mut Parser,
+            ty: SourceBuiltinType,
+        ) -> Result<SourceTerm, ParseError> {
+            parser.advance()?;
+            Ok(SourceTerm::Builtin(SourceBuiltin::Type(ty)))
+        }
+
+        match &kind {
+            TokenKind::ElimU8 => parse_primitive(parser, SourcePrimitive::ElimU8),
+            TokenKind::ZeroU8 => parse_primitive(parser, SourcePrimitive::ZeroU8),
+            TokenKind::SuccU8 => parse_primitive(parser, SourcePrimitive::SuccU8),
+            TokenKind::WriteU8 => parse_primitive(parser, SourcePrimitive::WriteU8),
+            TokenKind::ReadU8 => parse_primitive(parser, SourcePrimitive::ReadU8),
+            TokenKind::U8 => parse_type(parser, SourceBuiltinType::U8),
+            TokenKind::Prop => parse_type(parser, SourceBuiltinType::Prop),
+            TokenKind::Type => parse_type(parser, SourceBuiltinType::Type(0)), // TODO: assume 0 for now
+            TokenKind::Unit => parse_type(parser, SourceBuiltinType::Unit),
             TokenKind::Identifier => Ok(Self::Identifier(SourceIdentifier::parse(parser)?)),
             TokenKind::OpenParen => {
                 parser.advance()?;
@@ -88,11 +104,13 @@ impl SourceTerm {
                 parser.advance()?;
                 let inner = Self::parse(parser)?;
                 parser.expect_token(TokenKind::CloseBracket)?;
-                Ok(Self::Builtin(SourceBuiltinType::Array {
-                    dependent: Box::new(inner),
-                }))
+                Ok(Self::Builtin(SourceBuiltin::Type(
+                    SourceBuiltinType::Array {
+                        dependent: Box::new(inner),
+                    },
+                )))
             }
-            _ => Err(ParseError::ExpectedType {
+            _ => Err(ParseError::ExpectedExpression {
                 found: parser.current()?.kind,
                 position: parser.current()?.position,
             }),
@@ -109,11 +127,11 @@ impl SourceTerm {
 
         let name = SourceIdentifier::parse(parser)?;
 
+        let type_specifier = Box::new(parser.optional(Self::parse_type_specifier)?);
+
         parser.expect_token(TokenKind::Assign)?;
 
         let value = Self::parse(parser)?;
-
-        let type_specifier = Box::new(parser.optional(Self::parse_type_specifier)?);
 
         parser.expect_token(TokenKind::SemiColon)?;
 

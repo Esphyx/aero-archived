@@ -1,72 +1,48 @@
-use super::{
-    super::front_end::grammar::ast::SourceAST, assembler::instruction::Instruction,
+use super::assembler::{
+    AssemblyProgram,
+    instruction::{Immediate, Instruction, Operand, Reg},
 };
 
-pub fn generate(_ast: &SourceAST) -> Vec<Instruction> {
-    todo!()
-    // let mut instructions = Vec::new();
+pub fn generate() -> AssemblyProgram {
+    let mut program = AssemblyProgram::new();
 
-    // match &ast.program {
-    //     Expression::LetBinding { name, value, after } => {
-    //         if name == "main" {
-    //             generate_expression(&value, &mut instructions);
-    //         } else {
-    //             todo!()
-    //         }
-    //     }
-    //     _ => todo!(),
-    // }
-
-    // instructions.push(Instruction::MOV {
-    //     dst: Register::RCX,
-    //     src: Operand::Reg(Register::RAX),
-    // });
-    // instructions.push(Instruction::CALL {
-    //     target: Operand::Symbol("ExitProcess".to_string()),
-    // });
-
-    // instructions
+    syscall_exit(&mut program, 0);
+    program
 }
 
-// fn generate_expression(expr: &Expression, instructions: &mut Vec<Instruction>) {
-//     match expr {
-//         Expression::Atom(atom) => match atom {
-//             Atom::U32 => todo!(),
-//             Atom::NumberLiteral(n) => {
-//                 instructions.push(Instruction::MOV {
-//                     dst: Register::RAX,
-//                     src: Operand::Imm(*n),
-//                 });
+fn syscall_print(program: &mut AssemblyProgram, pointer: Reg, len: u8) {
+    program.add_instruction(Instruction::MOV {
+        dst: Reg::RAX,
+        src: Operand::Imm(Immediate::Byte(1)),
+    });
 
-//                 instructions.push(Instruction::PUSH { src: Register::RAX });
-//             }
-//             Atom::Identifier(_) => todo!(),
-//         },
-//         Expression::BinaryOperator { left, op, right } => {
-//             generate_expression(left, instructions);
+    program.add_instruction(Instruction::MOV {
+        dst: Reg::RDI,
+        src: Operand::Imm(Immediate::Byte(1)),
+    });
 
-//             generate_expression(right, instructions);
+    program.add_instruction(Instruction::MOV {
+        dst: Reg::RSI,
+        src: Operand::Reg(pointer),
+    });
 
-//             instructions.push(Instruction::POP { dst: Register::RBX });
-//             instructions.push(Instruction::POP { dst: Register::RAX });
+    program.add_instruction(Instruction::MOV {
+        dst: Reg::RDX,
+        src: Operand::Imm(Immediate::Byte(len)),
+    });
 
-//             match op {
-//                 BinaryOperator::Plus => {
-//                     instructions.push(Instruction::ADD {
-//                         dst: Register::RAX,
-//                         src: Operand::Reg(Register::RBX),
-//                     });
-//                 }
-//                 BinaryOperator::Minus => {
-//                     instructions.push(Instruction::SUB {
-//                         dst: Register::RAX,
-//                         src: Operand::Reg(Register::RBX),
-//                     });
-//                 }
-//             }
+    program.add_instruction(Instruction::SYSCALL);
+}
 
-//             instructions.push(Instruction::PUSH { src: Register::RAX });
-//         }
-//         _ => todo!(),
-//     }
-// }
+fn syscall_exit(program: &mut AssemblyProgram, exit_code: u8) {
+    program.add_instruction(Instruction::MOV {
+        dst: Reg::RAX,
+        src: Operand::Imm(Immediate::Byte(60)),
+    });
+
+    program.add_instruction(Instruction::MOV {
+        dst: Reg::RDI,
+        src: Operand::Imm(Immediate::Byte(exit_code)),
+    });
+    program.add_instruction(Instruction::SYSCALL);
+}

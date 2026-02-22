@@ -5,12 +5,14 @@ use {
         parser::{ParseError, Parser},
         token::TokenKind,
     },
+    builtin::{SourceBuiltinType, SourcePrimitive, SourceBuiltin},
     identifier::SourceIdentifier,
     namespace::SourceNamespace,
+    parameter::Parameter,
     term::SourceTerm,
-    parameter::Parameter
 };
 
+pub mod builtin;
 pub mod function;
 pub mod identifier;
 pub mod inductive;
@@ -29,14 +31,4 @@ impl SourceAST {
             namespace: SourceNamespace::parse(parser)?,
         })
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum SourceBuiltinType {
-    Prop,
-    Type(u32),
-    U8,
-    Unit,
-    Bool,
-    Array { dependent: Box<SourceTerm> },
 }

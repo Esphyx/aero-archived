@@ -19,19 +19,23 @@ impl Token {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TokenKind {
     // DYNAMIC LENGTH
-    Identifier, NumberLiteral, StringLiteral, Comment,
+    Identifier, Comment,
     // KEYWORDS
-    Todo, Total, Partial, Inductive, Fn, External,
-    // PRIMITIVES
-    Unit, Prop, Type, U8, WriteU8, ReadU8, AddU8,
+    Let, Inductive, Fn,
     // OPERATORS
-    Plus, Minus, Star, Slash, Pipe, Greater, Less, ShiftRight, ShiftLeft,
+    Assign,
+    // BUILTIN
+        // PRIMITIVES
+    WriteU8, ReadU8, ZeroU8, SuccU8, ElimU8,
+        // TYPES
+    Unit, Prop, Type, U8,
     // DELIMITERS
-    Colon, SemiColon, Period, Comma, Arrow,
+    Colon, SemiColon,Comma, Arrow,
     // BRACES
     OpenBracket, CloseBracket, OpenParen, CloseParen, OpenBrace, CloseBrace,
     // UNUSED
-    Virtual, Entry, U32, Match, Assign, Let, Do, While, Loop, Break, Continue, Snail,
+    // Virtual, Entry, U32, Match, Do, While, Loop, Break, Continue, Snail, External, Todo, Total, Partial,
+    // Plus, Minus, Star, Slash, Pipe, Greater, Less, ShiftRight, ShiftLeft, Period, 
     // END OF FILE 
     EoF,
 }
@@ -41,6 +45,7 @@ impl TokenKind {
         Some(match text {
             "let" => TokenKind::Let,
             "ind" => TokenKind::Inductive,
+            "fn" => TokenKind::Fn,
             "=>" => TokenKind::Arrow,
             _ => return None,
         })

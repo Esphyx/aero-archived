@@ -21,10 +21,6 @@ pub enum ParseError {
         found: TokenKind,
         position: usize,
     },
-    ExpectedType {
-        found: TokenKind,
-        position: usize,
-    },
     LexicalError(LexicalError),
     OutOfTokens,
 }
@@ -118,8 +114,7 @@ impl Parser {
             Ok(result) => Ok(Some(result)),
             Err(ParseError::ExpectedExpression { .. })
             | Err(ParseError::ExpectedIdentifier { .. })
-            | Err(ParseError::ExpectedToken { .. })
-            | Err(ParseError::ExpectedType { .. }) => {
+            | Err(ParseError::ExpectedToken { .. }) => {
                 self.position = back_up;
                 Ok(None)
             }

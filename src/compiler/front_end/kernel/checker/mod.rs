@@ -6,7 +6,8 @@ use super::de_bruijn::{
 };
 
 pub fn reducer(program: Program) -> Term {
-    let term = program.namespace.constants[program.entry_point]
+
+    let term = program.namespace.functions[program.entry_point]
         .definition
         .clone();
 
@@ -27,9 +28,10 @@ fn reduce(term: &Term, program: &Program) -> Term {
             match func {
                 Term::Lambda { body, .. } => beta_reduce(&body, &argument, 0),
                 Term::Builtin(Builtin::Primitive(_)) => {
+                    // TODO: replace with special form for builtin application for later code generation
                     Term::construct_application(func, reduce(argument, program))
                 }
-                Term::GlobalRef(_) => unreachable!(), // func should always be delta reduced
+                Term::GlobalRef(_) => unreachable!(), // func should always be delta reduced here
 
                 Term::App { .. } => {
                     let reduced_arg = reduce(&argument, program);
@@ -51,7 +53,7 @@ fn reduce(term: &Term, program: &Program) -> Term {
 
 fn delta_reduction(global_ref: &GlobalRef, program: &Program) -> Term {
     match global_ref {
-        GlobalRef::ConstRef(index) => program.namespace.constants[*index].wrap_with_lambdas(),
+        GlobalRef::ConstRef(index) => program.namespace.functions[*index].wrap_with_lambdas(),
         GlobalRef::InductiveRef(_) => todo!(),
     }
 }

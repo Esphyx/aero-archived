@@ -1,26 +1,28 @@
-#[derive(Debug, Clone, Copy)]
-pub enum Register {
-    RAX, // ACCUMULATOR
-    RCX, // COUNT
-    RDX, // DATA
-    RBX, // BASE
-    RSP, // STACK       POINTER
-    RBP, // BASE        POINTER
-    RSI, // SOURCE      INDEX
-    RDI, // DESTINATION INDEX
+pub struct Register {
+    pub name: &'static str,
+    pub layout: Vec<RegisterLayout>,
 }
 
 impl Register {
-    pub fn reg_code(&self) -> u8 {
-        match *self {
-            Register::RAX => 0,
-            Register::RCX => 1,
-            Register::RDX => 2,
-            Register::RBX => 3,
-            Register::RSP => 4,
-            Register::RBP => 5,
-            Register::RSI => 6,
-            Register::RDI => 7,
+    pub fn new(name: &'static str, layout: Vec<RegisterLayout>) -> Self {
+        Self { name, layout }
+    }
+
+    pub fn size(&self) -> usize {
+        self.layout.iter().map(RegisterLayout::size).sum()
+    }
+}
+
+pub enum RegisterLayout {
+    Bits(usize),
+    Subregister(Box<Register>),
+}
+
+impl RegisterLayout {
+    pub fn size(&self) -> usize {
+        match self {
+            RegisterLayout::Bits(length) => *length,
+            RegisterLayout::Subregister(register) => register.size(),
         }
     }
 }

@@ -15,12 +15,12 @@ impl Display for LexicalError {
 
 impl std::error::Error for LexicalError {}
 
-pub struct LexicalAnalyzer {
+pub struct Lexer {
     input: Vec<char>,
     position: usize,
 }
 
-impl LexicalAnalyzer {
+impl Lexer {
     pub fn new(input: String) -> Self {
         let input = input.chars().collect();
         Self { input, position: 0 }
@@ -67,29 +67,12 @@ impl LexicalAnalyzer {
             "unit" => TokenKind::Unit,
             "write_u8" => TokenKind::WriteU8,
             "read_u8" => TokenKind::ReadU8,
-            "add_u8" => TokenKind::AddU8,
+            "zero_u8" => TokenKind::ZeroU8,
+            "succ_u8" => TokenKind::SuccU8,
+            "elim_u8" => TokenKind::ElimU8,
             _ => TokenKind::Identifier,
         };
         Token::new(kind, self.position - id.len(), id.len())
-    }
-
-    fn number_literal(&mut self) -> Result<Token, LexicalError> {
-        let mut literal = String::new();
-
-        while let Some(c) = self.current() {
-            if c.is_ascii_digit() {
-                literal.push(c);
-                self.advance();
-            } else {
-                break;
-            }
-        }
-
-        Ok(Token::new(
-            TokenKind::NumberLiteral,
-            self.position - literal.len(),
-            literal.len(),
-        ))
     }
 
     fn skip_whitespace(&mut self) {
@@ -160,23 +143,23 @@ impl LexicalAnalyzer {
             return Ok(self.identifier_or_keyword());
         }
 
-        if c.is_ascii_digit() {
-            return self.number_literal();
-        }
+        // if c.is_ascii_digit() {
+        //     return self.number_literal();
+        // }
 
         let kind = match c {
-            '+' => TokenKind::Plus,
-            '-' => TokenKind::Minus,
-            '*' => TokenKind::Star,
-            '/' => TokenKind::Slash,
+            // '+' => TokenKind::Plus,
+            // '-' => TokenKind::Minus,
+            // '*' => TokenKind::Star,
+            // '/' => TokenKind::Slash,
             ';' => TokenKind::SemiColon,
             '=' => TokenKind::Assign,
-            '|' => TokenKind::Pipe,
+            // '|' => TokenKind::Pipe,
             ':' => TokenKind::Colon,
-            '.' => TokenKind::Period,
+            // '.' => TokenKind::Period,
             ',' => TokenKind::Comma,
             '>' => TokenKind::Arrow,
-            '@' => TokenKind::Snail,
+            // '@' => TokenKind::Snail,
             '{' => TokenKind::OpenBrace,
             '}' => TokenKind::CloseBrace,
             '(' => TokenKind::OpenParen,

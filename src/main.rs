@@ -1,6 +1,9 @@
-mod compiler;
-mod ide;
+use std::{error::Error, fs};
 
-fn main() {
-    ide::run();
+mod compiler;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    compiler::compile(fs::read_to_string("example/src/main.aero")?)?;
+
+    Ok(())
 }
