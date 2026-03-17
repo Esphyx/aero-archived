@@ -6,7 +6,24 @@ version = 4
 name = "aero"
 version = "0.1.0"
 dependencies = [
+ "ast",
  "colored",
+ "hir",
+ "lexer",
+ "parser",
+ "semantic",
+]
+
+[[package]]
+name = "assembler"
+version = "0.1.0"
+
+[[package]]
+name = "ast"
+version = "0.1.0"
+dependencies = [
+ "lexer",
+ "parser",
 ]
 
 [[package]]
@@ -16,6 +33,39 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "faf9468729b8cbcea668e36183cb69d317348c2e08e994829fb56ebfdfbaac34"
 dependencies = [
  "windows-sys",
+]
+
+[[package]]
+name = "generator"
+version = "0.1.0"
+dependencies = [
+ "assembler",
+]
+
+[[package]]
+name = "hir"
+version = "0.1.0"
+dependencies = [
+ "ast",
+]
+
+[[package]]
+name = "lexer"
+version = "0.1.0"
+
+[[package]]
+name = "parser"
+version = "0.1.0"
+dependencies = [
+ "lexer",
+]
+
+[[package]]
+name = "semantic"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "hir",
 ]
 
 [[package]]

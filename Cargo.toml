@@ -5,3 +5,18 @@ edition = "2024"
 
 [dependencies]
 colored = "3.1.1"
+lexer = { path = "compiler/lexer" }
+parser = { path = "compiler/parser" }
+ast = { path = "compiler/ast" }
+hir = { path = "compiler/hir" }
+semantic = { path = "compiler/semantic" }
+
+[workspace]
+members = [
+    "compiler/assembler",
+    "compiler/ast", "compiler/generator",
+    "compiler/hir",
+    "compiler/lexer",
+    "compiler/parser",
+    "compiler/semantic",
+]
