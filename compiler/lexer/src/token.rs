@@ -21,21 +21,18 @@ pub enum TokenKind {
     // DYNAMIC LENGTH
     Identifier, Comment,
     // KEYWORDS
-    Let, Inductive, Fn, 
-    Todo, Match,
+    Let, Inductive, Fn, Lambda,
+    Todo, Match, With, SelfType,
     // OPERATORS
     Assign,
     // BUILTIN
-        // PRIMITIVES
-    WriteU8, ReadU8, ZeroU8, SuccU8, ElimU8,
-        // TYPES
-    Unit, Prop, Type, U8,
+    Unit, Prop, Type,
     // DELIMITERS
-    Colon, SemiColon,Comma, Arrow, Pipe,
+    Colon, SemiColon,Comma, Arrow, Pipe, FatArrow, Wildcard,
     // BRACES
     OpenBracket, CloseBracket, OpenParen, CloseParen, OpenBrace, CloseBrace,
     // UNUSED
-    // Virtual, Entry, U32, Do, While, Loop, Break, Continue, Snail, External, Total, Partial,
+    // Virtual, Entry, Do, While, Loop, Break, Continue, Snail, External, Total, Partial,
     // Plus, Minus, Star, Slash, Greater, Less, ShiftRight, ShiftLeft, Period, 
     // END OF FILE 
     EoF,

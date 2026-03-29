@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
 use ast::{
-    function::SourceFunction, identifier::SourceIdentifier, namespace::SourceNamespace,
-    term::SourceTerm,
+    expression::Expression, function::Function, identifier::Identifier, namespace::Namespace,
 };
 
-use crate::lowering::term::{Builtin, GlobalRef, Term};
+use crate::lowering::expr::{Builtin, ConstructorRef, Ref, Expr};
 
 pub struct DeBruijnContext {
     pub local: LocalContext,
@@ -13,26 +12,67 @@ pub struct DeBruijnContext {
 }
 
 impl DeBruijnContext {
-    pub fn new(namespace: &SourceNamespace) -> Self {
+    pub fn new(namespace: &Namespace) -> Self {
         Self {
             local: LocalContext::new(),
             global: GlobalContext::new(namespace),
         }
     }
 
-    pub fn convert_term(&mut self, source: &SourceTerm) -> Term {
+    pub fn convert_term(&mut self, source: &Expression) -> Expr {
         match source {
-            SourceTerm::Identifier(id) => {
+            Expression::Lambda {
+                parameter,
+                type_specifier,
+                body,
+            } => {
+                let typ = Box::new(Some(self.convert_term(type_specifier)));
+                self.local.push(parameter.clone());
+
+                let body = Box::new(self.convert_term(body));
+                self.local.pop();
+
+                Expr::Lambda { typ, body }
+            }
+
+            Expression::Match {
+                scrutinee,
+                branches,
+            } => {
+                let scrutinee = Box::new(self.convert_term(scrutinee));
+
+                let branches: Vec<(ConstructorRef, Expr)> = branches
+                    .iter()
+                    .map(|branch| {
+                        let cons_ref = match self
+                            .global
+                            .resolve(&branch.pattern)
+                            .expect("Unknown constructor in match!")
+                        {
+                            Ref::Constructor(r) => r,
+                            _ => panic!("Pattern must be a constructor!"),
+                        };
+                        let body_term = self.convert_term(&branch.body);
+
+                        (cons_ref, body_term)
+                    })
+                    .collect();
+
+                Expr::Match {
+                    scrutinee,
+                    branches,
+                }
+            }
+            Expression::Identifier(id) => {
                 if let Some(index) = self.local.lookup_index(id) {
-                    Term::Var(index)
+                    Expr::Var(index)
                 } else if let Some(global_ref) = self.global.resolve(id) {
-                    Term::GlobalRef(global_ref)
+                    Expr::Ref(global_ref)
                 } else {
                     panic!("Unbound identifier '{}'! {:?}", id.get_name_str(), source);
                 }
             }
-
-            SourceTerm::Let {
+            Expression::Let {
                 name,
                 value,
                 type_specifier,
@@ -49,17 +89,15 @@ impl DeBruijnContext {
 
                 self.local.pop();
 
-                Term::construct_application(
-                    Term::construct_binding(typ, body),
+                Expr::construct_application(
+                    Expr::construct_binding(typ, body),
                     self.convert_term(value),
                 )
             }
-
-            SourceTerm::Builtin(builtin_source) => {
-                Term::Builtin(Builtin::from_source(builtin_source, self))
+            Expression::Builtin(builtin_source) => {
+                Expr::Builtin(Builtin::from_source(builtin_source, self))
             }
-
-            SourceTerm::Arrow {
+            Expression::Arrow {
                 dependent,
                 from_type,
                 to_type,
@@ -75,13 +113,12 @@ impl DeBruijnContext {
                     self.local.pop();
                 }
 
-                Term::Pi {
+                Expr::Pi {
                     from_type: Box::new(new_from_type),
                     to_type: Box::new(new_to_type),
                 }
             }
-
-            SourceTerm::App { function, argument } => Term::App {
+            Expression::App { function, argument } => Expr::App {
                 function: Box::new(self.convert_term(function)),
                 argument: Box::new(self.convert_term(argument)),
             },
@@ -90,7 +127,7 @@ impl DeBruijnContext {
 }
 
 pub struct LocalContext {
-    stack: Vec<SourceIdentifier>,
+    stack: Vec<Identifier>,
 }
 
 impl LocalContext {
@@ -99,7 +136,7 @@ impl LocalContext {
         Self { stack: Vec::new() }
     }
 
-    pub fn push(&mut self, id: SourceIdentifier) {
+    pub fn push(&mut self, id: Identifier) {
         self.stack.push(id);
     }
 
@@ -107,7 +144,7 @@ impl LocalContext {
         self.stack.pop();
     }
 
-    pub fn lookup_index(&self, id: &SourceIdentifier) -> Option<usize> {
+    pub fn lookup_index(&self, id: &Identifier) -> Option<usize> {
         // Later for better errors: while matching names down the stack, save information on closely matching names
         // or for efficiency only when it fails at symbol resolution
         self.stack
@@ -127,12 +164,12 @@ pub struct GlobalContext {
 }
 
 impl GlobalContext {
-    pub fn new(namespace: &SourceNamespace) -> Self {
+    pub fn new(namespace: &Namespace) -> Self {
         let constants = namespace
             .functions
             .iter()
             .enumerate()
-            .map(|(i, SourceFunction { name, .. })| (name.get_name_str().into(), i))
+            .map(|(i, Function { name, .. })| (name.get_name_str().into(), i))
             .collect();
 
         let inductives = namespace
@@ -167,28 +204,28 @@ impl GlobalContext {
         }
     }
 
-    pub fn resolve(&self, id: &SourceIdentifier) -> Option<GlobalRef> {
+    pub fn resolve(&self, id: &Identifier) -> Option<Ref> {
         let name = id.get_name_str();
 
         if let Some(&index) = self.constants.get(name) {
             if let Some(f) = self.current_function {
                 if f == index {
-                    return Some(GlobalRef::SelfRef(f));
+                    return Some(Ref::SelfRef(f));
                 }
             }
-            Some(GlobalRef::ConstRef(index))
+            Some(Ref::Function(index))
         } else if let Some(&index) = self.inductives.get(name) {
             if let Some(ind) = self.current_inductive {
                 if ind == index {
-                    return Some(GlobalRef::SelfRef(ind));
+                    return Some(Ref::SelfRef(ind));
                 }
             }
-            Some(GlobalRef::InductiveRef(index))
+            Some(Ref::Inductive(index))
         } else if let Some(&(inductive, constructor)) = self.constructors.get(name) {
-            Some(GlobalRef::ConstructorRef {
+            Some(Ref::Constructor(ConstructorRef {
                 inductive,
                 constructor,
-            })
+            }))
         } else {
             None
         }

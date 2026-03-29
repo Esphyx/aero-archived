@@ -1,51 +1,51 @@
 use lexer::token::TokenKind;
 use parser::parser::{ParseError, Parser};
 
-use crate::{identifier::SourceIdentifier, parameter::Parameter, term::SourceTerm};
+use crate::{identifier::Identifier, parameter::Parameter, expression::Expression};
 
 #[derive(Debug)]
-pub struct SourceInductive {
-    pub name: SourceIdentifier,
+pub struct Inductive {
+    pub name: Identifier,
     pub parameters: Vec<Parameter>,
-    pub typ: SourceTerm,
-    pub constructors: Vec<SourceConstructor>,
+    pub typ: Expression,
+    pub constructors: Vec<Constructor>,
 }
 
-impl SourceInductive {
+impl Inductive {
     pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
-        parser.expect_token(TokenKind::Inductive)?;
+        parser.expect_token(TokenKind::Inductive);
 
-        let name = SourceIdentifier::parse(parser)?;
+        let name = Identifier::parse(parser)?;
 
         // PARAMETERS
         let mut parameters = Vec::new();
-        while matches!(parser.current()?.kind, TokenKind::OpenParen) {
-            parser.advance()?;
-            let parameter_name = SourceIdentifier::parse(parser)?;
-            parser.expect_token(TokenKind::Colon)?;
-            let typ = SourceTerm::parse(parser)?;
-            parser.expect_token(TokenKind::CloseParen)?;
+        while matches!(parser.current().kind, TokenKind::OpenParen) {
+            parser.advance();
+            let parameter_name = Identifier::parse(parser)?;
+            parser.expect_token(TokenKind::Colon);
+            let typ = Expression::parse(parser)?;
+            parser.expect_token(TokenKind::CloseParen);
             parameters.push(Parameter {
                 name: parameter_name,
                 typ,
             });
         }
 
-        let typ = SourceTerm::parse_type_specifier(parser)?;
+        let typ = Expression::parse_type_specifier(parser)?;
 
         // body
-        parser.expect_token(TokenKind::Assign)?;
+        parser.expect_token(TokenKind::Assign);
 
         // constructors
         let mut constructors = Vec::new();
         while !(matches!(
-            parser.current()?.kind,
+            parser.current().kind,
             TokenKind::CloseBrace | TokenKind::SemiColon
         )) {
-            if matches!(parser.current()?.kind, TokenKind::Pipe) {
-                parser.advance()?;
+            if matches!(parser.current().kind, TokenKind::Pipe) {
+                parser.advance();
             }
-            constructors.push(SourceConstructor::parse(parser, &parameters)?);
+            constructors.push(Constructor::parse(parser, &parameters)?);
         }
 
         parser.expect_token(TokenKind::SemiColon);
@@ -60,16 +60,16 @@ impl SourceInductive {
 }
 
 #[derive(Debug)]
-pub struct SourceConstructor {
-    pub name: SourceIdentifier,
-    pub typ: SourceTerm,
+pub struct Constructor {
+    pub name: Identifier,
+    pub typ: Expression,
 }
 
-impl SourceConstructor {
+impl Constructor {
     pub fn parse(parser: &mut Parser, parameters: &Vec<Parameter>) -> Result<Self, ParseError> {
-        let name = SourceIdentifier::parse(parser)?;
-        parser.expect_token(TokenKind::Colon)?;
-        let typ = SourceTerm::parse(parser)?;
+        let name = Identifier::parse(parser)?;
+        parser.expect_token(TokenKind::Colon);
+        let typ = Expression::parse(parser)?;
 
         Ok(Self { name, typ })
     }

@@ -1,7 +1,7 @@
 pub mod de_bruijn;
 pub mod function;
 pub mod inductive;
-pub mod term;
+pub mod expr;
 pub mod program;
 
 use de_bruijn::DeBruijnContext;

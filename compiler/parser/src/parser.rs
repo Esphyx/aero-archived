@@ -74,34 +74,31 @@ impl Parser {
         })
     }
 
-    pub fn current(&self) -> Result<&Token, ParseError> {
-        self.tokens
-            .get(self.position)
-            .ok_or(ParseError::OutOfTokens)
+    pub fn current(&self) -> &Token {
+        self.tokens.get(self.position).expect("Out of tokens")
     }
 
-    pub fn advance(&mut self) -> Result<(), ParseError> {
+    pub fn advance(&mut self) {
         loop {
             self.position += 1;
 
-            if !matches!(self.current()?.kind, TokenKind::Comment) {
+            if !matches!(self.current().kind, TokenKind::Comment) {
                 break;
             }
         }
-
-        Ok(())
     }
 
-    pub fn expect_token(&mut self, expected: TokenKind) -> Result<(), ParseError> {
-        let current_token = self.current()?;
+    pub fn expect_token(&mut self, expected: TokenKind) {
+        let current_token = self.current();
         if current_token.kind == expected {
-            self.advance()
+            self.advance();
         } else {
-            Err(ParseError::ExpectedToken {
-                expected: vec![expected],
-                found: (*current_token).clone(), // CLONE
-                position: current_token.position,
-            })
+            panic!("Expected token: {:?}, found: {:?}", expected, (*current_token).clone());
+            // Err(ParseError::ExpectedToken {
+            //     expected: vec![expected],
+            //     found: (*current_token).clone(), // CLONE
+            //     position: current_token.position,
+            // })
         }
     }
 

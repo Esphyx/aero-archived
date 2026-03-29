@@ -61,16 +61,14 @@ impl Lexer {
             "let" => TokenKind::Let,
             "ind" => TokenKind::Inductive,
             "fn" => TokenKind::Fn,
-            "u8" => TokenKind::U8,
             "prop" => TokenKind::Prop,
             "Type" => TokenKind::Type,
             "unit" => TokenKind::Unit,
-            "write_u8" => TokenKind::WriteU8,
-            "read_u8" => TokenKind::ReadU8,
-            "zero_u8" => TokenKind::ZeroU8,
-            "succ_u8" => TokenKind::SuccU8,
-            "elim_u8" => TokenKind::ElimU8,
+            "Self" => TokenKind::SelfType,
             "todo" => TokenKind::Todo,
+            "lambda" => TokenKind::Lambda,
+            "match" => TokenKind::Match,
+            "with" => TokenKind::With,
             _ => TokenKind::Identifier,
         };
         Token::new(kind, self.position - id.len(), id.len())
@@ -128,6 +126,11 @@ impl Lexer {
         if self.starts_with("->") {
             self.advance_n(2);
             return Ok(Token::new(TokenKind::Arrow, self.position - 2, 2));
+        }
+
+        if self.starts_with("=>") {
+            self.advance_n(2);
+            return Ok(Token::new(TokenKind::FatArrow, self.position - 2, 2));
         }
 
         if self.starts_with("<-") {

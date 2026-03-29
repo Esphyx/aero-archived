@@ -1,22 +1,19 @@
-use crate::term::SourceTerm;
-
 #[derive(Debug, Clone)]
-pub enum SourceBuiltinType {
+pub enum BuiltinType {
     Prop,
     Type(u32),
-    U8,
     Unit,
-    Array { dependent: Box<SourceTerm> },
+    SelfType,
 }
 
 #[derive(Debug, Clone)]
-pub enum SourceBuiltin {
-    Type(SourceBuiltinType),
-    Primitive(SourcePrimitive),
+pub enum Builtin {
+    Type(BuiltinType),
+    Primitive(Primitive),
 }
 
 #[derive(Debug, Clone)]
-pub enum SourcePrimitive {
+pub enum Primitive {
     ReadU8,
     WriteU8,
     ZeroU8,

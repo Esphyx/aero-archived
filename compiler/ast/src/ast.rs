@@ -2,17 +2,17 @@ use std::fmt::Debug;
 
 use parser::parser::{ParseError, Parser};
 
-use crate::namespace::SourceNamespace;
+use crate::namespace::Namespace;
 
 #[derive(Debug)]
-pub struct SourceAST {
-    pub namespace: SourceNamespace,
+pub struct AST {
+    pub namespace: Namespace,
 }
 
-impl SourceAST {
+impl AST {
     pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
         Ok(Self {
-            namespace: SourceNamespace::parse(parser)?,
+            namespace: Namespace::parse(parser)?,
         })
     }
 }

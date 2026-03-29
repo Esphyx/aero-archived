@@ -5,5 +5,5 @@ pub mod identifier;
 pub mod inductive;
 pub mod namespace;
 pub mod parameter;
-pub mod term;
+pub mod expression;
 

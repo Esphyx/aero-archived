@@ -4,15 +4,15 @@ use lexer::token::TokenKind;
 use parser::parser::{ParseError, Parser};
 
 #[derive(PartialEq, Clone)]
-pub struct SourceIdentifier {
+pub struct Identifier {
     pub position: usize,
     pub length: usize,
     pub input: String,
 }
 
-impl SourceIdentifier {
+impl Identifier {
     pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
-        let current_token = parser.current()?;
+        let current_token = parser.current();
 
         if let TokenKind::Identifier = current_token.kind {
             let id = Self {
@@ -20,13 +20,14 @@ impl SourceIdentifier {
                 length: current_token.length,
                 input: parser.input.clone(),
             };
-            parser.advance()?;
+            parser.advance();
             Ok(id)
         } else {
-            Err(ParseError::ExpectedIdentifier {
-                found: current_token.clone(), // CLONE
-                position: current_token.position,
-            })
+            panic!("Expected identifier!");
+            // Err(ParseError::ExpectedIdentifier {
+            //     found: current_token.clone(), // CLONE
+            //     position: current_token.position,
+            // })
         }
     }
 
@@ -35,7 +36,7 @@ impl SourceIdentifier {
     }
 }
 
-impl Debug for SourceIdentifier {
+impl Debug for Identifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "\"{}\"", self.get_name_str())
     }

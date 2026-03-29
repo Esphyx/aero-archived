@@ -1,7 +1,11 @@
-use ast::{ast::SourceAST, function::SourceFunction, inductive::SourceInductive, namespace::SourceNamespace};
+use ast::{
+    ast::AST, function::Function as SourceFunction, inductive::Inductive as SourceInductive,
+    namespace::Namespace as SourceNamespace,
+};
 
-use crate::lowering::{Lower, de_bruijn::DeBruijnContext, function::Function, inductive::Inductive};
-
+use crate::lowering::{
+    Lower, de_bruijn::DeBruijnContext, expr::Expr, function::Function, inductive::Inductive,
+};
 
 #[derive(Debug)]
 pub struct Program {
@@ -10,7 +14,7 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn from(ast: &SourceAST) -> Self {
+    pub fn from(ast: &AST) -> Self {
         let mut context = DeBruijnContext::new(&ast.namespace);
 
         const ENTRY_POINT_NAME: &str = "main";
@@ -21,6 +25,10 @@ impl Program {
             namespace,
             entry_point: entry_point.expect("Entry point not found!"),
         }
+    }
+
+    pub fn entry_point_definition(&self) -> &Expr {
+        &self.namespace.functions[self.entry_point].definition
     }
 }
 

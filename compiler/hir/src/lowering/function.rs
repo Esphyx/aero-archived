@@ -1,21 +1,20 @@
-use ast::{function::SourceFunction, identifier::SourceIdentifier, parameter::Parameter};
+use ast::{function::Function as SourceFunction, identifier::Identifier, parameter::Parameter};
 
-use crate::lowering::{Lower, de_bruijn::DeBruijnContext, term::Term};
-
+use crate::lowering::{Lower, de_bruijn::DeBruijnContext, expr::Expr};
 
 #[derive(Debug)]
 pub struct Function {
-    pub name: SourceIdentifier,
-    pub parameter_types: Vec<Term>,
-    pub return_type: Option<Term>,
-    pub definition: Term,
+    pub name: Identifier,
+    pub parameter_types: Vec<Expr>,
+    pub return_type: Option<Expr>,
+    pub definition: Expr,
 }
 
 impl Function {
-    pub fn wrap_with_lambdas(&self) -> Term {
+    pub fn wrap_with_lambdas(&self) -> Expr {
         let mut body = self.definition.clone();
         for typ in self.parameter_types.iter() {
-            body = Term::Lambda {
+            body = Expr::Lambda {
                 typ: Box::new(Some(typ.clone())),
                 body: Box::new(body),
             }
@@ -32,7 +31,7 @@ impl Lower<Function> for SourceFunction {
             ctx.local.push(name.clone());
         }
 
-        let return_type = self.return_type.as_ref().map(|s| ctx.convert_term(&s));
+        let return_type = Some(ctx.convert_term(&self.return_type));
 
         let definition = ctx.convert_term(&self.body);
 

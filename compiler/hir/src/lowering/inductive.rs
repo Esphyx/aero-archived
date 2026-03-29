@@ -1,18 +1,21 @@
-use ast::{identifier::SourceIdentifier, inductive::{SourceConstructor, SourceInductive}};
+use ast::{
+    identifier::Identifier,
+    inductive::{Inductive as SourceInductive, Constructor as SourceConstructor},
+};
 
-use crate::lowering::{Lower, de_bruijn::DeBruijnContext, term::Term};
+use crate::lowering::{Lower, de_bruijn::DeBruijnContext, expr::Expr};
 
 #[derive(Debug)]
 pub struct Inductive {
-    pub name: SourceIdentifier,
-    pub typ: Term,
+    pub name: Identifier,
+    pub typ: Expr,
     pub constructors: Vec<Constructor>,
 }
 
 #[derive(Debug)]
 pub struct Constructor {
-    pub name: SourceIdentifier,
-    pub typ: Term,
+    pub name: Identifier,
+    pub typ: Expr,
 }
 
 impl Lower<Inductive> for SourceInductive {

@@ -1,28 +1,28 @@
 use lexer::token::TokenKind;
 use parser::parser::{ParseError, Parser};
 
-use crate::{identifier::SourceIdentifier, parameter::Parameter, term::SourceTerm};
+use crate::{identifier::Identifier, parameter::Parameter, expression::Expression};
 
 #[derive(Debug)]
-pub struct SourceFunction {
-    pub name: SourceIdentifier,
+pub struct Function {
+    pub name: Identifier,
     pub parameters: Vec<Parameter>,
-    pub return_type: Option<SourceTerm>,
-    pub body: SourceTerm,
+    pub return_type: Expression,
+    pub body: Expression,
 }
 
-impl SourceFunction {
+impl Function {
     pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
-        parser.expect_token(TokenKind::Fn)?;
-        let name = SourceIdentifier::parse(parser)?;
+        parser.expect_token(TokenKind::Fn);
+        let name = Identifier::parse(parser)?;
 
         let parameters = Parameter::parse_vec(parser)?;
 
-        let return_type = parser.optional(SourceTerm::parse_type_specifier)?;
+        let return_type = Expression::parse_type_specifier(parser)?;
 
-        parser.expect_token(TokenKind::OpenBrace)?;
-        let body = SourceTerm::parse(parser)?;
-        parser.expect_token(TokenKind::CloseBrace)?;
+        parser.expect_token(TokenKind::OpenBrace);
+        let body = Expression::parse(parser)?;
+        parser.expect_token(TokenKind::CloseBrace);
 
         Ok(Self {
             name,
