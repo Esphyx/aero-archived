@@ -20,50 +20,21 @@ pub enum Expr {
         body: Box<Self>,
     },
     App {
-        function: Box<Self>,
-        argument: Box<Self>,
+        func: Box<Self>,
+        arg: Box<Self>,
     },
     Match {
         scrutinee: Box<Self>,
-        branches: Vec<(ConstructorRef, Self)>, // to be changed if needed
+        branches: Vec<(ConsRef, Self)>,
     },
 }
-
-// impl Debug for Term {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         match self {
-//             Self::Var(i) => write!(f, "#{}", i),
-//             Self::Builtin(b) => write!(f, "{:?}", b),
-//             Self::GlobalRef(g) => write!(f, "{:?}", g),
-//             Self::Pi { from_type, to_type } => write!(f, "(Π _ : {:?} -> {:?})", from_type, to_type),
-//             Self::Lambda { typ, body } => match typ.as_ref() {
-//                 Some(t) => write!(f, "λ: {:?}. {:?}", t, body),
-//                 None => write!(f, "(λ. {:?})", body),
-//             },
-//             Self::App { function, argument } => write!(f, "({:?}, {:?})", function, argument),
-//             Self::Match {
-//                 scrutinee,
-//                 branches,
-//             } => {
-//                 write!(f, "(match {:?} {{", scrutinee)?;
-//                 for (i, (ctor, term)) in branches.iter().enumerate() {
-//                     if i > 0 {
-//                         write!(f, ", ")?;
-//                     }
-//                     write!(f, "{:?} := {:?}", ctor, term)?;
-//                 }
-//                 write!(f, " }})")
-//             },
-//         }
-//     }
-// }
 
 impl Expr {
     pub fn to_string(&self, program: &Program) -> String {
         match self {
-            Expr::Var(i) => format!("#{}", i),
-            Expr::Builtin(builtin) => builtin.to_string(),
-            Expr::Ref(global_ref) => global_ref.to_string(program),
+            Expr::Var(index) => format!("#{}", index),
+            Expr::Builtin(b) => b.to_string(),
+            Expr::Ref(r) => r.to_string(program),
             Expr::Pi { from_type, to_type } => format!(
                 "(Π _ : {} -> {})",
                 from_type.to_string(program),
@@ -73,7 +44,10 @@ impl Expr {
                 Some(t) => format!("λ: {}. {}", t.to_string(program), body.to_string(program)),
                 None => format!("λ. {}", body.to_string(program)),
             },
-            Expr::App { function, argument } => format!(
+            Expr::App {
+                func: function,
+                arg: argument,
+            } => format!(
                 "({}, {})",
                 function.to_string(program),
                 argument.to_string(program)
@@ -114,44 +88,44 @@ impl Expr {
 
     pub fn construct_application(function: Self, argument: Self) -> Self {
         Self::App {
-            function: Box::new(function),
-            argument: Box::new(argument),
+            func: Box::new(function),
+            arg: Box::new(argument),
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Ref {
-    Function(usize),
-    Inductive(usize),
-    Constructor(ConstructorRef),
-    SelfRef(usize),
+    Fn(usize),
+    Ind(usize),
+    Cons(ConsRef),
+    // SelfRef(usize),
 }
 
 impl Ref {
     pub fn to_string(&self, program: &Program) -> String {
         match self {
-            Ref::Function(i) => program.namespace.functions[*i]
+            Ref::Fn(i) => program.namespace.functions[*i]
                 .name
                 .get_name_str()
                 .to_string(),
-            Ref::Inductive(i) => program.namespace.inductives[*i]
+            Ref::Ind(i) => program.namespace.inductives[*i]
                 .name
                 .get_name_str()
                 .to_string(),
-            Ref::Constructor(r) => r.to_string(program),
-            Ref::SelfRef(i) => todo!(),
+            Ref::Cons(r) => r.to_string(program),
+            // Ref::SelfRef(i) => todo!(),
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ConstructorRef {
+pub struct ConsRef {
     pub inductive: usize,
     pub constructor: usize,
 }
 
-impl ConstructorRef {
+impl ConsRef {
     pub fn to_string(&self, program: &Program) -> String {
         program.namespace.inductives[self.inductive].constructors[self.constructor]
             .name

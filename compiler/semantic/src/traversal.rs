@@ -1,10 +1,10 @@
-use hir::lowering::expr::{ConstructorRef, Expr};
+use hir::lowering::expr::{ConsRef, Expr};
 
 pub fn collect_spine(term: &Expr) -> (Expr, Vec<Expr>) {
     let mut args = Vec::new();
     let mut head = term;
 
-    while let Expr::App { function, argument } = head {
+    while let Expr::App { func: function, arg: argument } = head {
         args.push((**argument).clone());
         head = function;
     }
@@ -37,7 +37,7 @@ pub fn substitute(term: &Expr, value: &Expr, depth: usize) -> Expr {
             substitute(from_type, value, depth),
             substitute(to_type, value, depth + 1), // increase depth, because Var(0) points to dependent type
         ),
-        Expr::App { function, argument } => Expr::construct_application(
+        Expr::App { func: function, arg: argument } => Expr::construct_application(
             substitute(function, value, depth),
             substitute(argument, value, depth),
         ),
@@ -47,7 +47,7 @@ pub fn substitute(term: &Expr, value: &Expr, depth: usize) -> Expr {
         } => {
             let scrutinee = Box::new(substitute(scrutinee, value, depth));
 
-            let branches: Vec<(ConstructorRef, Expr)> = branches
+            let branches: Vec<(ConsRef, Expr)> = branches
                 .iter()
                 .map(|(ctor, body)| (ctor.clone(), substitute(body, value, depth)))
                 .collect();
@@ -60,7 +60,7 @@ pub fn substitute(term: &Expr, value: &Expr, depth: usize) -> Expr {
     }
 }
 
-// shifts de Bruijn indices by `amount` starting at `cutoff`
+// shifts de Bruijn indices by amount starting at cutoff
 pub fn shift_indices(term: &Expr, cutoff: usize, amount: isize) -> Expr {
     match term {
         Expr::Var(idx) => {
@@ -81,7 +81,7 @@ pub fn shift_indices(term: &Expr, cutoff: usize, amount: isize) -> Expr {
             shift_indices(to_type, cutoff + 1, amount),
         ),
 
-        Expr::App { function, argument } => Expr::construct_application(
+        Expr::App { func: function, arg: argument } => Expr::construct_application(
             shift_indices(function, cutoff, amount),
             shift_indices(argument, cutoff, amount),
         ),

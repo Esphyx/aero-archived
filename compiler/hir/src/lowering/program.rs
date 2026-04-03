@@ -71,9 +71,7 @@ impl Namespace {
                 entry_point = Some(i);
             }
 
-            ctx.global.current_function = Some(i);
             functions.push(func.lower(ctx));
-            ctx.global.current_function = None;
         }
         (entry_point, functions)
     }
@@ -82,15 +80,6 @@ impl Namespace {
         source: &Vec<SourceInductive>,
         ctx: &mut DeBruijnContext,
     ) -> Vec<Inductive> {
-        source
-            .iter()
-            .enumerate()
-            .map(|(i, s)| {
-                ctx.global.current_inductive = Some(i);
-                let ind = s.lower(ctx);
-                ctx.global.current_inductive = None;
-                ind
-            })
-            .collect()
+        source.iter().map(|s| s.lower(ctx)).collect()
     }
 }

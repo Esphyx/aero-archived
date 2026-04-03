@@ -4,7 +4,7 @@ use ast::{
     expression::Expression, function::Function, identifier::Identifier, namespace::Namespace,
 };
 
-use crate::lowering::expr::{Builtin, ConstructorRef, Ref, Expr};
+use crate::lowering::expr::{Builtin, ConsRef, Ref, Expr};
 
 pub struct DeBruijnContext {
     pub local: LocalContext,
@@ -41,7 +41,7 @@ impl DeBruijnContext {
             } => {
                 let scrutinee = Box::new(self.convert_term(scrutinee));
 
-                let branches: Vec<(ConstructorRef, Expr)> = branches
+                let branches: Vec<(ConsRef, Expr)> = branches
                     .iter()
                     .map(|branch| {
                         let cons_ref = match self
@@ -49,7 +49,7 @@ impl DeBruijnContext {
                             .resolve(&branch.pattern)
                             .expect("Unknown constructor in match!")
                         {
-                            Ref::Constructor(r) => r,
+                            Ref::Cons(r) => r,
                             _ => panic!("Pattern must be a constructor!"),
                         };
                         let body_term = self.convert_term(&branch.body);
@@ -119,8 +119,8 @@ impl DeBruijnContext {
                 }
             }
             Expression::App { function, argument } => Expr::App {
-                function: Box::new(self.convert_term(function)),
-                argument: Box::new(self.convert_term(argument)),
+                func: Box::new(self.convert_term(function)),
+                arg: Box::new(self.convert_term(argument)),
             },
         }
     }
@@ -158,9 +158,6 @@ pub struct GlobalContext {
     constants: HashMap<String, usize>,
     inductives: HashMap<String, usize>,
     constructors: HashMap<String, (usize, usize)>,
-
-    pub current_function: Option<usize>,
-    pub current_inductive: Option<usize>,
 }
 
 impl GlobalContext {
@@ -199,8 +196,6 @@ impl GlobalContext {
             constants,
             inductives,
             constructors,
-            current_function: None,
-            current_inductive: None,
         }
     }
 
@@ -208,21 +203,11 @@ impl GlobalContext {
         let name = id.get_name_str();
 
         if let Some(&index) = self.constants.get(name) {
-            if let Some(f) = self.current_function {
-                if f == index {
-                    return Some(Ref::SelfRef(f));
-                }
-            }
-            Some(Ref::Function(index))
+            Some(Ref::Fn(index))
         } else if let Some(&index) = self.inductives.get(name) {
-            if let Some(ind) = self.current_inductive {
-                if ind == index {
-                    return Some(Ref::SelfRef(ind));
-                }
-            }
-            Some(Ref::Inductive(index))
+            Some(Ref::Ind(index))
         } else if let Some(&(inductive, constructor)) = self.constructors.get(name) {
-            Some(Ref::Constructor(ConstructorRef {
+            Some(Ref::Cons(ConsRef {
                 inductive,
                 constructor,
             }))
