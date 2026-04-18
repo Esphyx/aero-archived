@@ -14,21 +14,23 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 pub fn compile(input: String) -> Result<(), Box<dyn std::error::Error>> {
     let tokens = Lexer::new(input.clone()).tokens()?;
-    let mut parser = Parser::new(tokens, input.clone())?;
-    let ast = AST::parse(&mut parser).map_err(|e| e.with_source(input))?;
+    let mut parser = Parser::new(tokens, input.clone()).unwrap();
+    let ast = AST::parse(&mut parser).unwrap();
+
+    dbg!(&ast);
 
     let program = Program::from(&ast);
 
     dbg!(&program.namespace.inductives);
 
-    check_program(&program);
+    // check_program(&program);
 
-    dbg!(&program);
+    // dbg!(&program);
 
     let entry = program.entry_point_definition();
 
     let reduced = whnf(entry, &program);
-    println!("{:#?}", reduced);
+    // println!("{:#?}", reduced);
 
     Ok(())
 }

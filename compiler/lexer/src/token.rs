@@ -22,7 +22,7 @@ pub enum TokenKind {
     Identifier, Comment,
     // KEYWORDS
     Let, Inductive, Fn, Lambda,
-    Todo, Match, With, SelfType,
+    Todo, Match, With, Forall, SelfType,
     // OPERATORS
     Assign,
     // BUILTIN

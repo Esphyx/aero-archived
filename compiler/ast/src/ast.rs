@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use parser::parser::{ParseError, Parser};
+use parser::{error::ParseError, parser::Parser};
 
 use crate::namespace::Namespace;
 

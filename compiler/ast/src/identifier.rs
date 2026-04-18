@@ -1,7 +1,10 @@
 use std::fmt::Debug;
 
 use lexer::token::TokenKind;
-use parser::parser::{ParseError, Parser};
+use parser::{
+    error::{ParseError, ParseErrorKind},
+    parser::Parser,
+};
 
 #[derive(PartialEq, Clone)]
 pub struct Identifier {
@@ -23,11 +26,7 @@ impl Identifier {
             parser.advance();
             Ok(id)
         } else {
-            panic!("Expected identifier!");
-            // Err(ParseError::ExpectedIdentifier {
-            //     found: current_token.clone(), // CLONE
-            //     position: current_token.position,
-            // })
+            panic!("Expected identifier! {:?}", current_token.kind);
         }
     }
 

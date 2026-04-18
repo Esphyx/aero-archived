@@ -1,7 +1,7 @@
 use lexer::token::TokenKind;
-use parser::parser::{ParseError, Parser};
+use parser::{error::ParseError, parser::Parser};
 
-use crate::{identifier::Identifier, expression::Expression};
+use crate::{expression::Expression, identifier::Identifier};
 
 #[derive(Debug)]
 pub struct Parameter {
@@ -27,7 +27,7 @@ impl Parameter {
 
             let typ = Expression::parse_type_specifier(parser)?;
 
-            parser.expect_token(TokenKind::CloseParen);
+            parser.expect_token(TokenKind::CloseParen)?;
 
             for name in names {
                 parameters.push(Self {

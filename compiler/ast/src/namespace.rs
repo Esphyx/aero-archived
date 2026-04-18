@@ -1,5 +1,5 @@
 use lexer::token::TokenKind;
-use parser::parser::{ParseError, Parser};
+use parser::{error::ParseError, parser::Parser};
 
 use crate::{function::Function, inductive::Inductive};
 
@@ -28,11 +28,6 @@ impl Namespace {
                 }
                 _ => {
                     panic!("Expected token!");
-                    // return Err(ParseError::ExpectedToken {
-                    //     expected: vec![TokenKind::Fn, TokenKind::Inductive],
-                    //     found: current_token.clone(),
-                    //     position: current_token.position,
-                    // });
                 }
             }
         }

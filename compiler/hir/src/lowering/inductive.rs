@@ -1,6 +1,6 @@
 use ast::{
     identifier::Identifier,
-    inductive::{Inductive as SourceInductive, Constructor as SourceConstructor},
+    inductive::{Constructor as SourceConstructor, Inductive as SourceInductive},
 };
 
 use crate::lowering::{Lower, de_bruijn::DeBruijnContext, expr::Expr};
@@ -20,23 +20,35 @@ pub struct Constructor {
 
 impl Lower<Inductive> for SourceInductive {
     fn lower(&self, ctx: &mut DeBruijnContext) -> Inductive {
-        self.parameters.iter().for_each(|p| {
+        for p in &self.parameters {
             ctx.local.push(p.name.clone());
-        });
+        }
 
-        let constructors = self.constructors.iter().map(|s| s.lower(ctx)).collect();
+        let constructors = self.constructors.iter().map(|c| c.lower(ctx)).collect();
 
-        self.parameters.iter().for_each(|_| {
+        let mut typ = ctx.convert_term(&self.typ);
+
+        for p in self.parameters.iter().rev() {
+            let param_ty = ctx.convert_term(&p.typ);
+            typ = Expr::Pi {
+                from_type: Box::new(param_ty),
+                to_type: Box::new(typ),
+            }
+        }
+
+        for _ in &self.parameters {
             ctx.local.pop();
-        });
+        }
 
         Inductive {
             name: self.name.clone(),
-            typ: ctx.convert_term(&self.typ),
+            typ,
             constructors,
         }
     }
 }
+
+
 impl Lower<Constructor> for SourceConstructor {
     fn lower(&self, ctx: &mut DeBruijnContext) -> Constructor {
         Constructor {

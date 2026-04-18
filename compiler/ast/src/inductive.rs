@@ -1,5 +1,5 @@
 use lexer::token::TokenKind;
-use parser::parser::{ParseError, Parser};
+use parser::{error::ParseError, parser::Parser};
 
 use crate::{identifier::Identifier, parameter::Parameter, expression::Expression};
 
@@ -13,30 +13,16 @@ pub struct Inductive {
 
 impl Inductive {
     pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
-        parser.expect_token(TokenKind::Inductive);
+        parser.expect_token(TokenKind::Inductive)?;
 
         let name = Identifier::parse(parser)?;
 
-        // PARAMETERS
-        let mut parameters = Vec::new();
-        while matches!(parser.current().kind, TokenKind::OpenParen) {
-            parser.advance();
-            let parameter_name = Identifier::parse(parser)?;
-            parser.expect_token(TokenKind::Colon);
-            let typ = Expression::parse(parser)?;
-            parser.expect_token(TokenKind::CloseParen);
-            parameters.push(Parameter {
-                name: parameter_name,
-                typ,
-            });
-        }
+        let parameters = Parameter::parse_vec(parser)?;
 
         let typ = Expression::parse_type_specifier(parser)?;
 
-        // body
-        parser.expect_token(TokenKind::Assign);
+        parser.expect_token(TokenKind::Assign)?;
 
-        // constructors
         let mut constructors = Vec::new();
         while !(matches!(
             parser.current().kind,
@@ -48,7 +34,7 @@ impl Inductive {
             constructors.push(Constructor::parse(parser, &parameters)?);
         }
 
-        parser.expect_token(TokenKind::SemiColon);
+        parser.expect_token(TokenKind::SemiColon)?;
 
         Ok(Self {
             name,
@@ -68,7 +54,7 @@ pub struct Constructor {
 impl Constructor {
     pub fn parse(parser: &mut Parser, parameters: &Vec<Parameter>) -> Result<Self, ParseError> {
         let name = Identifier::parse(parser)?;
-        parser.expect_token(TokenKind::Colon);
+        parser.expect_token(TokenKind::Colon)?;
         let typ = Expression::parse(parser)?;
 
         Ok(Self { name, typ })

@@ -69,6 +69,7 @@ impl Lexer {
             "lambda" => TokenKind::Lambda,
             "match" => TokenKind::Match,
             "with" => TokenKind::With,
+            "forall" => TokenKind::Forall,
             _ => TokenKind::Identifier,
         };
         Token::new(kind, self.position - id.len(), id.len())
@@ -95,8 +96,8 @@ impl Lexer {
 
         Token::new(
             TokenKind::Comment,
-            saved_position - 2,
-            comment_text.len() + 2,
+            saved_position - 1,
+            comment_text.len() + 1,
         )
     }
 
@@ -138,8 +139,8 @@ impl Lexer {
             return Ok(Token::new(TokenKind::Assign, self.position - 2, 2));
         }
 
-        if self.starts_with("//") {
-            self.advance_n(2);
+        if self.starts_with("#") {
+            self.advance_n(1);
             return Ok(self.comment());
         }
 
@@ -153,18 +154,12 @@ impl Lexer {
         }
 
         let kind = match c {
-            // '+' => TokenKind::Plus,
-            // '-' => TokenKind::Minus,
-            // '*' => TokenKind::Star,
-            // '/' => TokenKind::Slash,
             ';' => TokenKind::SemiColon,
             '=' => TokenKind::Assign,
             '|' => TokenKind::Pipe,
             ':' => TokenKind::Colon,
-            // '.' => TokenKind::Period,
             ',' => TokenKind::Comma,
             '>' => TokenKind::Arrow,
-            // '@' => TokenKind::Snail,
             '{' => TokenKind::OpenBrace,
             '}' => TokenKind::CloseBrace,
             '(' => TokenKind::OpenParen,

@@ -1,8 +1,8 @@
 use lexer::token::TokenKind;
-use parser::parser::{ParseError, Parser};
+use parser::{error::ParseError, parser::Parser};
 
 use crate::{
-    builtin::{Builtin, BuiltinType, Primitive},
+    builtin::{Builtin, BuiltinType},
     identifier::Identifier,
 };
 
@@ -45,7 +45,7 @@ pub struct Branch {
 impl Branch {
     pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
         let pattern = Identifier::parse(parser)?;
-        parser.expect_token(TokenKind::Assign);
+        parser.expect_token(TokenKind::Assign)?;
         let body = Expression::parse(parser)?;
 
         Ok(Self { pattern, body })
@@ -54,15 +54,20 @@ impl Branch {
 
 impl Expression {
     pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
-        if matches!(parser.current().kind, TokenKind::Lambda) {
+        let current = parser.current().kind;
+        if matches!(current, TokenKind::Lambda) {
             return Self::parse_lambda(parser);
         }
 
-        if matches!(parser.current().kind, TokenKind::Let) {
+        if matches!(current, TokenKind::Forall) {
+            return Self::parse_forall(parser);
+        }
+
+        if matches!(current, TokenKind::Let) {
             return Self::parse_let(parser);
         }
 
-        if matches!(parser.current().kind, TokenKind::Match) {
+        if matches!(current, TokenKind::Match) {
             return Self::parse_match(parser);
         }
 
@@ -98,13 +103,29 @@ impl Expression {
         Ok(lhs)
     }
 
+    fn parse_forall(parser: &mut Parser) -> Result<Self, ParseError> {
+        parser.expect_token(TokenKind::Forall)?;
+
+        let parameter = Identifier::parse(parser)?;
+        let type_specifier = Self::parse_type_specifier(parser)?;
+
+        parser.expect_token(TokenKind::Comma)?;
+        let body = Self::parse(parser)?;
+
+        Ok(Expression::Arrow {
+            dependent: Some(parameter),
+            from_type: Box::new(type_specifier),
+            to_type: Box::new(body),
+        })
+    }
+
     fn parse_lambda(parser: &mut Parser) -> Result<Self, ParseError> {
-        parser.expect_token(TokenKind::Lambda);
+        parser.expect_token(TokenKind::Lambda)?;
 
         let parameter = Identifier::parse(parser)?;
         let type_specifier = Box::new(Self::parse_type_specifier(parser)?);
 
-        parser.expect_token(TokenKind::FatArrow);
+        parser.expect_token(TokenKind::FatArrow)?;
         let body = Box::new(Self::parse(parser)?);
 
         Ok(Self::Lambda {
@@ -115,9 +136,9 @@ impl Expression {
     }
 
     fn parse_match(parser: &mut Parser) -> Result<Self, ParseError> {
-        parser.expect_token(TokenKind::Match);
+        parser.expect_token(TokenKind::Match)?;
         let scrutinee = Box::new(Self::parse(parser)?);
-        parser.expect_token(TokenKind::With);
+        parser.expect_token(TokenKind::With)?;
 
         let mut branches = Vec::new();
         while matches!(parser.current().kind, TokenKind::Pipe) {
@@ -149,36 +170,32 @@ impl Expression {
             TokenKind::OpenParen => {
                 parser.advance();
                 let t = Self::parse(parser)?;
-                parser.expect_token(TokenKind::CloseParen);
+                parser.expect_token(TokenKind::CloseParen)?;
                 Ok(t)
             }
             _ => {
                 panic!("Expected expression, found: {:?}!", parser.current().kind);
-                //     Err(ParseError::ExpectedExpression {
-                //     found: parser.current().kind,
-                //     position: parser.current().position,
-                // })
             }
         }
     }
 
     pub fn parse_type_specifier(parser: &mut Parser) -> Result<Self, ParseError> {
-        parser.expect_token(TokenKind::Colon);
+        parser.expect_token(TokenKind::Colon)?;
         Self::parse(parser)
     }
 
     pub fn parse_let(parser: &mut Parser) -> Result<Self, ParseError> {
-        parser.expect_token(TokenKind::Let);
+        parser.expect_token(TokenKind::Let)?;
 
         let name = Identifier::parse(parser)?;
 
-        let type_specifier = Box::new(parser.optional(Self::parse_type_specifier)?);
+        let type_specifier = Box::new(Some(Self::parse_type_specifier(parser)?));
 
-        parser.expect_token(TokenKind::Assign);
+        parser.expect_token(TokenKind::Assign)?;
 
         let value = Self::parse(parser)?;
 
-        parser.expect_token(TokenKind::SemiColon);
+        parser.expect_token(TokenKind::SemiColon)?;
 
         let body = Box::new(Self::parse(parser)?);
 
