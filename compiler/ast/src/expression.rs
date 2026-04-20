@@ -23,8 +23,8 @@ pub enum Expression {
     },
     Arrow {
         dependent: Option<Identifier>,
-        from_type: Box<Self>,
-        to_type: Box<Self>,
+        typ: Box<Self>,
+        body: Box<Self>,
     },
     App {
         function: Box<Self>,
@@ -95,8 +95,8 @@ impl Expression {
             let rhs = Self::parse(parser)?;
             lhs = Self::Arrow {
                 dependent: None,
-                from_type: Box::new(lhs),
-                to_type: Box::new(rhs),
+                typ: Box::new(lhs),
+                body: Box::new(rhs),
             }
         }
 
@@ -114,8 +114,8 @@ impl Expression {
 
         Ok(Expression::Arrow {
             dependent: Some(parameter),
-            from_type: Box::new(type_specifier),
-            to_type: Box::new(body),
+            typ: Box::new(type_specifier),
+            body: Box::new(body),
         })
     }
 

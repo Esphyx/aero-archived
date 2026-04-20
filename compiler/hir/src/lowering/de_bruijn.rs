@@ -4,7 +4,7 @@ use ast::{
     expression::Expression, function::Function, identifier::Identifier, namespace::Namespace,
 };
 
-use crate::lowering::expr::{Builtin, ConsRef, Ref, Expr};
+use crate::lowering::expr::{Builtin, ConsRef, Expr, Ref};
 
 pub struct DeBruijnContext {
     pub local: LocalContext,
@@ -99,24 +99,22 @@ impl DeBruijnContext {
             }
             Expression::Arrow {
                 dependent,
-                from_type,
-                to_type,
+                typ,
+                body,
             } => {
-                let new_from_type = self.convert_term(from_type);
+                let new_typ = self.convert_term(typ);
 
                 if let Some(name) = dependent {
                     self.local.push(name.clone());
                 }
-                let new_to_type = self.convert_term(to_type);
+                
+                let new_body = self.convert_term(body);
 
                 if let Some(_) = dependent {
                     self.local.pop();
                 }
 
-                Expr::Pi {
-                    from_type: Box::new(new_from_type),
-                    to_type: Box::new(new_to_type),
-                }
+                Expr::construct_pi(new_typ, new_body)
             }
             Expression::App { function, argument } => Expr::App {
                 func: Box::new(self.convert_term(function)),

@@ -12,8 +12,8 @@ pub enum Expr {
     Builtin(Builtin),
     Ref(Ref),
     Pi {
-        from_type: Box<Self>,
-        to_type: Box<Self>,
+        typ: Box<Self>,
+        body: Box<Self>,
     },
     Lambda {
         typ: Box<Option<Self>>,
@@ -35,10 +35,10 @@ impl Expr {
             Expr::Var(index) => format!("#{}", index),
             Expr::Builtin(b) => b.to_string(),
             Expr::Ref(r) => r.to_string(program),
-            Expr::Pi { from_type, to_type } => format!(
+            Expr::Pi { typ: dependent_type, body } => format!(
                 "(Π _ : {} -> {})",
-                from_type.to_string(program),
-                to_type.to_string(program)
+                dependent_type.to_string(program),
+                body.to_string(program)
             ),
             Expr::Lambda { typ, body } => match typ.as_ref() {
                 Some(t) => format!("λ: {}. {}", t.to_string(program), body.to_string(program)),
@@ -72,10 +72,10 @@ impl Expr {
         }
     }
 
-    pub fn construct_pi(from: Self, to: Self) -> Self {
+    pub fn construct_pi(typ: Self, body: Self) -> Self {
         Self::Pi {
-            from_type: Box::new(from),
-            to_type: Box::new(to),
+            typ: Box::new(typ),
+            body: Box::new(body),
         }
     }
 

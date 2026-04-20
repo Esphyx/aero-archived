@@ -30,7 +30,7 @@ pub fn is_strictly_positive(ind: usize, typ: &Expr) -> bool {
                 arg: argument,
             } => check_argument(function, ind) && check_argument(argument, ind),
 
-            Expr::Pi { from_type, to_type } => {
+            Expr::Pi { typ: from_type, body: to_type } => {
                 // inductive appearing in domain of an arrow is forbidden
                 contains_inductive(from_type, ind) == false && check_argument(to_type, ind)
             }
@@ -45,8 +45,8 @@ pub fn is_strictly_positive(ind: usize, typ: &Expr) -> bool {
                 contains_inductive(func, ind) || contains_inductive(arg, ind)
             }
 
-            Expr::Pi { from_type, to_type } => {
-                contains_inductive(from_type, ind) || contains_inductive(to_type, ind)
+            Expr::Pi { typ, body } => {
+                contains_inductive(typ, ind) || contains_inductive(body, ind)
             }
 
             _ => false,
@@ -56,18 +56,18 @@ pub fn is_strictly_positive(ind: usize, typ: &Expr) -> bool {
     fn returns_inductive(term: &Expr, ind: usize) -> bool {
         match term {
             Expr::App { func, .. } => returns_inductive(func, ind),
-            Expr::Pi { to_type, .. } => returns_inductive(to_type, ind),
+            Expr::Pi { body, .. } => returns_inductive(body, ind),
             Expr::Ref(Ref::Ind(i)) => *i == ind,
             _ => false,
         }
     }
 
     let mut t = typ;
-    while let Expr::Pi { from_type, to_type } = t {
-        if !check_argument(from_type, ind) {
+    while let Expr::Pi { typ, body } = t {
+        if !check_argument(typ, ind) {
             return false;
         }
-        t = to_type;
+        t = body;
     }
 
     returns_inductive(t, ind)

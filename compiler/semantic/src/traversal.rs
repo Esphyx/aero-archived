@@ -4,9 +4,9 @@ pub fn collect_spine(term: &Expr) -> (Expr, Vec<Expr>) {
     let mut args = Vec::new();
     let mut head = term;
 
-    while let Expr::App { func: function, arg: argument } = head {
-        args.push((**argument).clone());
-        head = function;
+    while let Expr::App { func, arg } = head {
+        args.push((**arg).clone());
+        head = func;
     }
 
     args.reverse();
@@ -33,9 +33,9 @@ pub fn substitute(term: &Expr, value: &Expr, depth: usize) -> Expr {
                 substitute(body, value, depth + 1), // increase depth, because Var(0) points to lambda argument
             )
         }
-        Expr::Pi { from_type, to_type } => Expr::construct_pi(
-            substitute(from_type, value, depth),
-            substitute(to_type, value, depth + 1), // increase depth, because Var(0) points to dependent type
+        Expr::Pi { typ, body } => Expr::construct_pi(
+            substitute(typ, value, depth),
+            substitute(body, value, depth + 1), // increase depth, because Var(0) points to dependent type
         ),
         Expr::App { func: function, arg: argument } => Expr::construct_application(
             substitute(function, value, depth),
@@ -76,14 +76,14 @@ pub fn shift_indices(term: &Expr, cutoff: usize, amount: isize) -> Expr {
             Expr::construct_binding(typ, shift_indices(body, cutoff + 1, amount))
         }
 
-        Expr::Pi { from_type, to_type } => Expr::construct_pi(
-            shift_indices(from_type, cutoff, amount),
-            shift_indices(to_type, cutoff + 1, amount),
+        Expr::Pi { typ, body } => Expr::construct_pi(
+            shift_indices(typ, cutoff, amount),
+            shift_indices(body, cutoff + 1, amount),
         ),
 
-        Expr::App { func: function, arg: argument } => Expr::construct_application(
-            shift_indices(function, cutoff, amount),
-            shift_indices(argument, cutoff, amount),
+        Expr::App { func, arg } => Expr::construct_application(
+            shift_indices(func, cutoff, amount),
+            shift_indices(arg, cutoff, amount),
         ),
 
         Expr::Match {

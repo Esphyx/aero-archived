@@ -20,40 +20,29 @@ pub struct Constructor {
 
 impl Lower<Inductive> for SourceInductive {
     fn lower(&self, ctx: &mut DeBruijnContext) -> Inductive {
-        for p in &self.parameters {
+        for p in self.parameters.iter() {
             ctx.local.push(p.name.clone());
         }
 
-        let constructors = self.constructors.iter().map(|c| c.lower(ctx)).collect();
-
         let mut typ = ctx.convert_term(&self.typ);
 
-        for p in self.parameters.iter().rev() {
-            let param_ty = ctx.convert_term(&p.typ);
-            typ = Expr::Pi {
-                from_type: Box::new(param_ty),
-                to_type: Box::new(typ),
-            }
-        }
-
-        for _ in &self.parameters {
-            ctx.local.pop();
-        }
+        // issue is likely pi conversion
+        // todo: constructor conversion
 
         Inductive {
             name: self.name.clone(),
             typ,
-            constructors,
+            constructors: Vec::new(),
         }
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use ast::{identifier::Identifier, inductive::Inductive as SourceInductive};
 
-impl Lower<Constructor> for SourceConstructor {
-    fn lower(&self, ctx: &mut DeBruijnContext) -> Constructor {
-        Constructor {
-            name: self.name.clone(),
-            typ: ctx.convert_term(&self.typ),
-        }
+    #[test]
+    fn convert() {
+        
     }
 }
