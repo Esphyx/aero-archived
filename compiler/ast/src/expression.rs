@@ -22,7 +22,7 @@ pub enum Expression {
         body: Box<Self>,
     },
     Arrow {
-        dependent: Option<Identifier>,
+        dependent: Binder,
         typ: Box<Self>,
         body: Box<Self>,
     },
@@ -34,6 +34,12 @@ pub enum Expression {
         scrutinee: Box<Self>,
         branches: Vec<Branch>,
     },
+}
+
+#[derive(Debug, Clone)]
+pub enum Binder {
+    Named(Identifier),
+    Anonymous,
 }
 
 #[derive(Debug, Clone)]
@@ -94,7 +100,7 @@ impl Expression {
             parser.advance();
             let rhs = Self::parse(parser)?;
             lhs = Self::Arrow {
-                dependent: None,
+                dependent: Binder::Anonymous,
                 typ: Box::new(lhs),
                 body: Box::new(rhs),
             }
@@ -113,7 +119,7 @@ impl Expression {
         let body = Self::parse(parser)?;
 
         Ok(Expression::Arrow {
-            dependent: Some(parameter),
+            dependent: Binder::Named(parameter),
             typ: Box::new(type_specifier),
             body: Box::new(body),
         })

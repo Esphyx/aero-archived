@@ -1,4 +1,4 @@
-use ast::{function::Function as SourceFunction, identifier::Identifier, parameter::Parameter};
+use ast::{expression::Binder, function::Function as SourceFunction, identifier::Identifier, parameter::Parameter};
 
 use crate::lowering::{Lower, de_bruijn::DeBruijnContext, expr::Expr};
 
@@ -28,7 +28,7 @@ impl Lower<Function> for SourceFunction {
         let mut parameter_types = Vec::new();
         for Parameter { name, typ } in self.parameters.iter() {
             parameter_types.push(ctx.convert_term(typ));
-            ctx.local.push(name.clone());
+            ctx.local.push(Binder::Named(name.clone()));
         }
 
         let return_type = Some(ctx.convert_term(&self.return_type));

@@ -1,16 +1,11 @@
 use std::fmt::Debug;
 
 use lexer::token::TokenKind;
-use parser::{
-    error::{ParseError, ParseErrorKind},
-    parser::Parser,
-};
+use parser::{error::ParseError, parser::Parser};
 
 #[derive(PartialEq, Clone)]
 pub struct Identifier {
-    pub position: usize,
-    pub length: usize,
-    pub input: String,
+    pub name: String,
 }
 
 impl Identifier {
@@ -18,20 +13,25 @@ impl Identifier {
         let current_token = parser.current();
 
         if let TokenKind::Identifier = current_token.kind {
-            let id = Self {
-                position: current_token.position,
-                length: current_token.length,
-                input: parser.input.clone(),
-            };
+            let name = parser.input
+                [current_token.position..current_token.position + current_token.length]
+                .to_string();
+
             parser.advance();
-            Ok(id)
+            Ok(Self { name })
         } else {
             panic!("Expected identifier! {:?}", current_token.kind);
         }
     }
 
+    pub fn dummy() -> Self {
+        Self {
+            name: "_".to_string(),
+        }
+    }
+
     pub fn get_name_str(&self) -> &str {
-        &self.input[self.position..self.position + self.length]
+        &self.name
     }
 }
 

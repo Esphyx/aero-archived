@@ -1,7 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, usize};
 
 use ast::{
-    expression::Expression, function::Function, identifier::Identifier, namespace::Namespace,
+    expression::{Binder, Expression},
+    function::Function,
+    identifier::Identifier,
+    namespace::Namespace,
 };
 
 use crate::lowering::expr::{Builtin, ConsRef, Expr, Ref};
@@ -27,7 +30,7 @@ impl DeBruijnContext {
                 body,
             } => {
                 let typ = Box::new(Some(self.convert_term(type_specifier)));
-                self.local.push(parameter.clone());
+                self.local.push(Binder::Named(parameter.clone()));
 
                 let body = Box::new(self.convert_term(body));
                 self.local.pop();
@@ -83,7 +86,7 @@ impl DeBruijnContext {
                     .as_ref()
                     .map(|t| self.convert_term(&t));
 
-                self.local.push(name.clone());
+                self.local.push(Binder::Named(name.clone()));
 
                 let body = self.convert_term(body);
 
@@ -104,15 +107,11 @@ impl DeBruijnContext {
             } => {
                 let new_typ = self.convert_term(typ);
 
-                if let Some(name) = dependent {
-                    self.local.push(name.clone());
-                }
-                
+                self.local.push(dependent.clone());
+
                 let new_body = self.convert_term(body);
 
-                if let Some(_) = dependent {
-                    self.local.pop();
-                }
+                self.local.pop();
 
                 Expr::construct_pi(new_typ, new_body)
             }
@@ -125,17 +124,16 @@ impl DeBruijnContext {
 }
 
 pub struct LocalContext {
-    stack: Vec<Identifier>,
+    stack: Vec<Binder>,
 }
 
 impl LocalContext {
-    // TODO: store the index/size from the time of insertion
     pub fn new() -> Self {
         Self { stack: Vec::new() }
     }
 
-    pub fn push(&mut self, id: Identifier) {
-        self.stack.push(id);
+    pub fn push(&mut self, binder: Binder) {
+        self.stack.push(binder);
     }
 
     pub fn pop(&mut self) {
@@ -143,12 +141,14 @@ impl LocalContext {
     }
 
     pub fn lookup_index(&self, id: &Identifier) -> Option<usize> {
-        // Later for better errors: while matching names down the stack, save information on closely matching names
-        // or for efficiency only when it fails at symbol resolution
         self.stack
             .iter()
             .rev()
-            .position(|bound| bound.get_name_str() == id.get_name_str())
+            .enumerate()
+            .find_map(|(i, binder)| match binder {
+                Binder::Named(bound) if bound.name == id.name => Some(i),
+                _ => None,
+            })
     }
 }
 
