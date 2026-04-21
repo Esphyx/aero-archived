@@ -1,8 +1,4 @@
-use ast::{
-    expression::Binder,
-    identifier::Identifier,
-    inductive::{Constructor as SourceConstructor, Inductive as SourceInductive},
-};
+use ast::{expression::Binder, identifier::Identifier, inductive::Inductive as SourceInductive};
 
 use crate::lowering::{Lower, de_bruijn::DeBruijnContext, expr::Expr};
 
@@ -29,13 +25,41 @@ impl Lower<Inductive> for SourceInductive {
 
         for p in self.parameters.iter().rev() {
             ctx.local.pop();
-            typ = Expr::construct_pi(ctx.convert_term(&p.typ), typ)
+            typ = Expr::construct_pi(ctx.convert_term(&p.typ), typ);
         }
+
+        for p in self.parameters.iter() {
+            ctx.local.push(Binder::Named(p.name.clone()));
+        }
+
+        let mut constructors_types: Vec<Expr> = self
+            .constructors
+            .iter()
+            .map(|c| ctx.convert_term(&c.typ))
+            .collect();
+
+        for p in self.parameters.iter().rev() {
+            ctx.local.pop();
+
+            constructors_types = constructors_types
+                .into_iter()
+                .map(|t| Expr::construct_pi(ctx.convert_term(&p.typ), t))
+                .collect();
+        }
+
+        let constructors = constructors_types
+            .into_iter()
+            .zip(&self.constructors)
+            .map(|(t, c)| Constructor {
+                name: c.name.clone(),
+                typ: t,
+            })
+            .collect();
 
         Inductive {
             name: self.name.clone(),
             typ,
-            constructors: Vec::new(),
+            constructors,
         }
     }
 }
