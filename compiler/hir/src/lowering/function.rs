@@ -1,4 +1,7 @@
-use ast::{expression::Binder, function::Function as SourceFunction, identifier::Identifier, parameter::Parameter};
+use ast::{
+    expression::Binder, function::Function as SourceFunction, identifier::Identifier,
+    parameter::Parameter,
+};
 
 use crate::lowering::{Lower, de_bruijn::DeBruijnContext, expr::Expr};
 
@@ -6,7 +9,7 @@ use crate::lowering::{Lower, de_bruijn::DeBruijnContext, expr::Expr};
 pub struct Function {
     pub name: Identifier,
     pub parameter_types: Vec<Expr>,
-    pub return_type: Option<Expr>,
+    pub return_type: Expr,
     pub definition: Expr,
 }
 
@@ -31,7 +34,7 @@ impl Lower<Function> for SourceFunction {
             ctx.local.push(Binder::Named(name.clone()));
         }
 
-        let return_type = Some(ctx.convert_term(&self.return_type));
+        let return_type = ctx.convert_term(&self.return_type);
 
         let definition = ctx.convert_term(&self.body);
 

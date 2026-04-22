@@ -1,13 +1,19 @@
 use hir::lowering::{
     expr::{Expr, Ref},
-    program::Program,
+    program::Namespace,
 };
 
-pub fn check_program(program: &Program) {
-    for (ind_index, inductive) in program.namespace.inductives.iter().enumerate() {
+pub fn check_namespace(namespace: &Namespace) {
+    for (ind_index, inductive) in namespace.inductives.iter().enumerate() {
         for cons in inductive.constructors.iter() {
             check_inductive_definition(ind_index, &cons.typ);
         }
+    }
+
+    for func in namespace.functions.iter() {
+        // CHECK whether function actually returns specified return type
+        let expected_type = func.return_type.clone();
+        let inferred_type = todo!();
     }
 }
 
@@ -24,15 +30,9 @@ pub fn is_strictly_positive(ind: usize, typ: &Expr) -> bool {
     fn check_argument(term: &Expr, ind: usize) -> bool {
         match term {
             Expr::Var(_) | Expr::Builtin(_) => true,
-
-            Expr::App {
-                func: function,
-                arg: argument,
-            } => check_argument(function, ind) && check_argument(argument, ind),
-
-            Expr::Pi { typ: from_type, body: to_type } => {
-                // inductive appearing in domain of an arrow is forbidden
-                contains_inductive(from_type, ind) == false && check_argument(to_type, ind)
+            Expr::App { func, arg } => check_argument(func, ind) && check_argument(arg, ind),
+            Expr::Pi { typ, body } => {
+                contains_inductive(typ, ind) == false && check_argument(body, ind)
             }
 
             _ => true,
@@ -44,11 +44,7 @@ pub fn is_strictly_positive(ind: usize, typ: &Expr) -> bool {
             Expr::App { func, arg } => {
                 contains_inductive(func, ind) || contains_inductive(arg, ind)
             }
-
-            Expr::Pi { typ, body } => {
-                contains_inductive(typ, ind) || contains_inductive(body, ind)
-            }
-
+            Expr::Pi { typ, body } => contains_inductive(typ, ind) || contains_inductive(body, ind),
             _ => false,
         }
     }

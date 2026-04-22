@@ -61,7 +61,7 @@ impl Lexer {
             "let" => TokenKind::Let,
             "ind" => TokenKind::Inductive,
             "fn" => TokenKind::Fn,
-            "prop" => TokenKind::Prop,
+            "Prop" => TokenKind::Prop,
             "Type" => TokenKind::Type,
             "unit" => TokenKind::Unit,
             "Self" => TokenKind::SelfType,

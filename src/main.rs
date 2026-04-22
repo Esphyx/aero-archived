@@ -4,7 +4,7 @@ use ast::ast::AST;
 use hir::lowering::program::Program;
 use lexer::lexer::Lexer;
 use parser::parser::Parser;
-use semantic::{kernel::whnf, positivity::check_program};
+use semantic::{kernel::whnf, positivity::check_namespace};
 
 fn main() -> Result<(), Box<dyn Error>> {
     compile(fs::read_to_string("example/src/main.aero")?)?;
@@ -17,20 +17,9 @@ pub fn compile(input: String) -> Result<(), Box<dyn std::error::Error>> {
     let mut parser = Parser::new(tokens, input.clone()).unwrap();
     let ast = AST::parse(&mut parser).unwrap();
 
-    dbg!(&ast);
-
     let program = Program::from(&ast);
 
-    dbg!(&program.namespace.inductives);
-
-    // check_program(&program);
-
-    // dbg!(&program);
-
-    let entry = program.entry_point_definition();
-
-    let reduced = whnf(entry, &program);
-    // println!("{:#?}", reduced);
+    check_namespace(&program.namespace);
 
     Ok(())
 }
