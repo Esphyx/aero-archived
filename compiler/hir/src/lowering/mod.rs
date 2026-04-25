@@ -4,8 +4,8 @@ pub mod inductive;
 pub mod expr;
 pub mod program;
 
-use de_bruijn::DeBruijnContext;
+use de_bruijn::Context;
 
 pub trait Lower<T> {
-    fn lower(&self, ctx: &mut DeBruijnContext) -> T;
+    fn lower(&self, ctx: &mut Context) -> T;
 }

@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use ast::builtin::Builtin as SourceBuiltin;
 
-use crate::lowering::de_bruijn::DeBruijnContext;
+use crate::lowering::de_bruijn::Context;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
@@ -70,7 +70,7 @@ pub enum Builtin {
 }
 
 impl Builtin {
-    pub fn from_source<'a>(builtin_type: &'a SourceBuiltin, _: &mut DeBruijnContext) -> Self {
+    pub fn from_source<'a>(builtin_type: &'a SourceBuiltin, _: &mut Context) -> Self {
         match builtin_type {
             SourceBuiltin::Prop => Self::Prop,
             SourceBuiltin::Type(u) => Self::Type(*u),

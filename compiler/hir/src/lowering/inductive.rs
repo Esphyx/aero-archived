@@ -1,6 +1,6 @@
 use ast::{expression::Binder, identifier::Identifier, inductive::Inductive as SourceInductive};
 
-use crate::lowering::{Lower, de_bruijn::DeBruijnContext, expr::Expr};
+use crate::lowering::{Lower, de_bruijn::Context, expr::Expr};
 
 #[derive(Debug)]
 pub struct Inductive {
@@ -16,7 +16,7 @@ pub struct Constructor {
 }
 
 impl Lower<Inductive> for SourceInductive {
-    fn lower(&self, ctx: &mut DeBruijnContext) -> Inductive {
+    fn lower(&self, ctx: &mut Context) -> Inductive {
         for p in self.parameters.iter() {
             ctx.local.push(Binder::Named(p.name.clone()));
         }

@@ -10,12 +10,12 @@ use ast::{
 
 use crate::lowering::expr::{Builtin, ConsRef, Expr, Ref};
 
-pub struct DeBruijnContext {
+pub struct Context {
     pub local: LocalContext,
     pub global: GlobalContext,
 }
 
-impl DeBruijnContext {
+impl Context {
     pub fn new(namespace: &Namespace) -> Self {
         Self {
             local: LocalContext::new(),
@@ -26,19 +26,16 @@ impl DeBruijnContext {
     pub fn convert_term(&mut self, source: &Expression) -> Expr {
         match source {
             Expression::Lambda {
-                parameter,
+                param: binder,
                 type_specifier,
                 body,
             } => {
                 let typ = Box::new(Some(self.convert_term(type_specifier)));
-                self.local.push(Binder::Named(parameter.clone()));
-
+                self.local.push(binder.clone());
                 let body = Box::new(self.convert_term(body));
                 self.local.pop();
-
                 Expr::Lambda { typ, body }
             }
-
             Expression::Match {
                 scrutinee,
                 branches,
@@ -150,14 +147,14 @@ impl LocalContext {
 }
 
 pub struct GlobalContext {
-    constants: HashMap<String, usize>,
+    functions: HashMap<String, usize>,
     inductives: HashMap<String, usize>,
     constructors: HashMap<String, (usize, usize)>,
 }
 
 impl GlobalContext {
     pub fn new(namespace: &Namespace) -> Self {
-        let constants = namespace
+        let functions = namespace
             .functions
             .iter()
             .enumerate()
@@ -188,7 +185,7 @@ impl GlobalContext {
             .collect();
 
         Self {
-            constants,
+            functions,
             inductives,
             constructors,
         }
@@ -197,7 +194,7 @@ impl GlobalContext {
     pub fn resolve(&self, id: &Identifier) -> Option<Ref> {
         let name = id.get_name_str();
 
-        if let Some(&index) = self.constants.get(name) {
+        if let Some(&index) = self.functions.get(name) {
             Some(Ref::Fn(index))
         } else if let Some(&index) = self.inductives.get(name) {
             Some(Ref::Ind(index))

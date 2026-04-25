@@ -14,7 +14,7 @@ pub enum Expression {
         body: Box<Self>,
     },
     Lambda {
-        parameter: Identifier,
+        param: Binder,
         type_specifier: Box<Self>,
         body: Box<Self>,
     },
@@ -125,14 +125,14 @@ impl Expression {
     fn parse_lambda(parser: &mut Parser) -> Result<Self, ParseError> {
         parser.expect_token(TokenKind::Lambda)?;
 
-        let parameter = Identifier::parse(parser)?;
+        let param = Binder::Named(Identifier::parse(parser)?);
         let type_specifier = Box::new(Self::parse_type_specifier(parser)?);
 
         parser.expect_token(TokenKind::FatArrow)?;
         let body = Box::new(Self::parse(parser)?);
 
         Ok(Self::Lambda {
-            parameter,
+            param,
             type_specifier,
             body,
         })

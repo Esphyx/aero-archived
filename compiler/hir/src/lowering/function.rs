@@ -3,7 +3,7 @@ use ast::{
     parameter::Parameter,
 };
 
-use crate::lowering::{Lower, de_bruijn::DeBruijnContext, expr::Expr};
+use crate::lowering::{Lower, de_bruijn::Context, expr::Expr};
 
 #[derive(Debug)]
 pub struct Function {
@@ -13,7 +13,7 @@ pub struct Function {
 }
 
 impl Lower<Function> for SourceFunction {
-    fn lower(&self, ctx: &mut DeBruijnContext) -> Function {
+    fn lower(&self, ctx: &mut Context) -> Function {
         let mut parameter_types = Vec::new();
         for Parameter { name, typ } in self.parameters.iter() {
             parameter_types.push(ctx.convert_term(typ));
