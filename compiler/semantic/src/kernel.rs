@@ -1,40 +1,40 @@
 use hir::lowering::{
     expr::{Expr, Ref},
-    program::Program,
+    program::Namespace,
 };
 
 use crate::traversal::{collect_spine, substitute};
 
-pub fn whnf(term: &Expr, program: &Program) -> Expr {
+pub fn whnf(term: &Expr, namespace: &Namespace) -> Expr {
     match term {
-        Expr::App { .. } => beta_reduction(term, program),
-        Expr::Match { .. } => iota_reduction(term, program),
-        Expr::Ref(g) => delta_reduction(&g, program),
+        Expr::App { .. } => beta_reduction(term, namespace),
+        Expr::Match { .. } => iota_reduction(term, namespace),
+        Expr::Ref(g) => delta_reduction(&g, namespace),
         _ => term.clone(),
     }
 }
 
-fn delta_reduction(global_ref: &Ref, program: &Program) -> Expr {
+fn delta_reduction(global_ref: &Ref, namespace: &Namespace) -> Expr {
     match global_ref {
-        Ref::Fn(index) => program.namespace.functions[*index].wrap_with_lambdas(),
+        Ref::Fn(index) => namespace.functions[*index].definition.clone(),
         Ref::Ind(ind) => Expr::Ref(Ref::Ind(*ind)),
         Ref::Cons(cr) => Expr::Ref(Ref::Cons(cr.clone())),
     }
 }
 
-fn beta_reduction(term: &Expr, program: &Program) -> Expr {
+fn beta_reduction(term: &Expr, namespace: &Namespace) -> Expr {
     if let Expr::App {
         func: function,
         arg: argument,
     } = term
     {
-        let f = whnf(function, program);
-        let a = whnf(argument, program);
+        let f = whnf(function, namespace);
+        let a = whnf(argument, namespace);
 
         match f {
             Expr::Lambda { body, .. } => {
                 let substituted = substitute(&body, &a, 0);
-                whnf(&substituted, program)
+                whnf(&substituted, namespace)
             }
             _ => Expr::construct_application(f, a),
         }
@@ -43,13 +43,13 @@ fn beta_reduction(term: &Expr, program: &Program) -> Expr {
     }
 }
 
-fn iota_reduction(term: &Expr, program: &Program) -> Expr {
+fn iota_reduction(term: &Expr, namespace: &Namespace) -> Expr {
     if let Expr::Match {
         scrutinee,
         branches,
     } = term
     {
-        let scrut = whnf(scrutinee, program);
+        let scrut = whnf(scrutinee, namespace);
         let (head, args) = collect_spine(&scrut);
 
         match head {
@@ -65,7 +65,7 @@ fn iota_reduction(term: &Expr, program: &Program) -> Expr {
                     result = Expr::construct_application(result, arg);
                 }
 
-                whnf(&result, program)
+                whnf(&result, namespace)
             }
             _ => {
                 panic!(

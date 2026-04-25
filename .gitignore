@@ -1,3 +1,9 @@
 /target
 /example
-build.sh
+/aero-analyzer/node_modules
+/aero-analyzer/package-lock.json
+/aero-analyzer/out
+/aero-analyzer/aero-analyzer-0.0.1.vsix
+/aero-analyzer
+/lsp
+/.gitignore

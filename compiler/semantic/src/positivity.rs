@@ -3,6 +3,8 @@ use hir::lowering::{
     program::Namespace,
 };
 
+use crate::{context::Context, kernel::whnf, traversal::substitute};
+
 pub fn check_namespace(namespace: &Namespace) {
     for (ind_index, inductive) in namespace.inductives.iter().enumerate() {
         for cons in inductive.constructors.iter() {
@@ -10,11 +12,40 @@ pub fn check_namespace(namespace: &Namespace) {
         }
     }
 
-    for func in namespace.functions.iter() {
-        // CHECK whether function actually returns specified return type
-        let expected_type = func.return_type.clone();
-        let inferred_type = todo!();
+    // for func in namespace.functions.iter() {
+    //     let expected_type = func.return_type.clone();
+    //     let inferred_type = infer_type(&func.definition, todo!(), todo!());
+    // }
+}
+
+fn infer_type(expr: &Expr, ctx: &mut Context, namespace: &Namespace) -> Expr {
+    match expr {
+        Expr::Var(i) => ctx.lookup(*i).clone(),
+        Expr::Ref(r) => infer_global(r, namespace),
+        Expr::App { func, arg } => {
+            let func_ty = infer_type(func, ctx, namespace);
+            let func_ty = whnf(&func_ty, namespace);
+
+            match func_ty {
+                Expr::Pi { typ, body } => {
+                    check_type(arg, &typ, ctx, namespace);
+                    substitute(&body, arg, 0)
+                }
+                _ => panic!("Expected pi type"),
+            }
+        }
+        Expr::Lambda { typ, body } => {
+            let param_ty = typ.clone();
+            todo!()
+        }
+        _ => todo!(),
     }
+}
+
+fn check_type(expr: &Expr, expected: &Expr, ctx: &mut Context, namespace: &Namespace) {}
+
+fn infer_global(r: &Ref, namespace: &Namespace) -> Expr {
+    todo!()
 }
 
 pub fn check_inductive_definition(ind: usize, typ: &Expr) {

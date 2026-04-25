@@ -1,10 +1,7 @@
 use lexer::token::TokenKind;
 use parser::{error::ParseError, parser::Parser};
 
-use crate::{
-    builtin::{Builtin, BuiltinType},
-    identifier::Identifier,
-};
+use crate::{builtin::Builtin, identifier::Identifier};
 
 #[derive(Debug, Clone)]
 pub enum Expression {
@@ -27,8 +24,8 @@ pub enum Expression {
         body: Box<Self>,
     },
     App {
-        function: Box<Self>,
-        argument: Box<Self>,
+        func: Box<Self>,
+        arg: Box<Self>,
     },
     Match {
         scrutinee: Box<Self>,
@@ -91,8 +88,8 @@ impl Expression {
         ) {
             let rhs = Self::parse_atom(parser)?;
             lhs = Self::App {
-                function: Box::new(lhs),
-                argument: Box::new(rhs),
+                func: Box::new(lhs),
+                arg: Box::new(rhs),
             }
         }
 
@@ -162,16 +159,14 @@ impl Expression {
     fn parse_atom(parser: &mut Parser) -> Result<Self, ParseError> {
         let kind = parser.current().kind;
 
-        fn parse_type(parser: &mut Parser, ty: BuiltinType) -> Result<Expression, ParseError> {
+        fn parse_type(parser: &mut Parser, builtin: Builtin) -> Result<Expression, ParseError> {
             parser.advance();
-            Ok(Expression::Builtin(Builtin::Type(ty)))
+            Ok(Expression::Builtin(builtin))
         }
 
         match &kind {
-            TokenKind::SelfType => parse_type(parser, BuiltinType::SelfType),
-            TokenKind::Prop => parse_type(parser, BuiltinType::Prop),
-            TokenKind::Type => parse_type(parser, BuiltinType::Type(0)), // TODO: assume 0 for now
-            TokenKind::Unit => parse_type(parser, BuiltinType::Unit),
+            TokenKind::Prop => parse_type(parser, Builtin::Prop),
+            TokenKind::Type => parse_type(parser, Builtin::Type(0)), // TODO: assuming 0 for now
             TokenKind::Identifier => Ok(Self::Identifier(Identifier::parse(parser)?)),
             TokenKind::OpenParen => {
                 parser.advance();

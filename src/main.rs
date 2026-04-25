@@ -1,7 +1,7 @@
 use std::{error::Error, fs};
 
 use ast::ast::AST;
-use hir::lowering::program::Program;
+use hir::lowering::program::Namespace;
 use lexer::lexer::Lexer;
 use parser::parser::Parser;
 use semantic::{kernel::whnf, positivity::check_namespace};
@@ -17,9 +17,11 @@ pub fn compile(input: String) -> Result<(), Box<dyn std::error::Error>> {
     let mut parser = Parser::new(tokens, input.clone()).unwrap();
     let ast = AST::parse(&mut parser).unwrap();
 
-    let program = Program::from(&ast);
+    let namespace = Namespace::from(&ast);
 
-    check_namespace(&program.namespace);
+    dbg!(&namespace);
+
+    check_namespace(&namespace);
 
     Ok(())
 }

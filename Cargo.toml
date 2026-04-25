@@ -18,5 +18,5 @@ members = [
     "compiler/hir",
     "compiler/lexer",
     "compiler/parser",
-    "compiler/semantic",
+    "compiler/semantic", "lsp",
 ]

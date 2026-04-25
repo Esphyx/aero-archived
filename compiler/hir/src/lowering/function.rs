@@ -8,22 +8,8 @@ use crate::lowering::{Lower, de_bruijn::DeBruijnContext, expr::Expr};
 #[derive(Debug)]
 pub struct Function {
     pub name: Identifier,
-    pub parameter_types: Vec<Expr>,
-    pub return_type: Expr,
     pub definition: Expr,
-}
-
-impl Function {
-    pub fn wrap_with_lambdas(&self) -> Expr {
-        let mut body = self.definition.clone();
-        for typ in self.parameter_types.iter() {
-            body = Expr::Lambda {
-                typ: Box::new(Some(typ.clone())),
-                body: Box::new(body),
-            }
-        }
-        body
-    }
+    pub return_type: Expr,
 }
 
 impl Lower<Function> for SourceFunction {
@@ -36,15 +22,18 @@ impl Lower<Function> for SourceFunction {
 
         let return_type = ctx.convert_term(&self.return_type);
 
-        let definition = ctx.convert_term(&self.body);
+        let mut definition = ctx.convert_term(&self.body);
 
         for _ in 0..self.parameters.len() {
             ctx.local.pop();
         }
 
+        for typ in parameter_types.iter().rev() {
+            definition = Expr::construct_binding(Some(typ.clone()), definition);
+        }
+
         Function {
             name: self.name.clone(),
-            parameter_types,
             return_type,
             definition,
         }

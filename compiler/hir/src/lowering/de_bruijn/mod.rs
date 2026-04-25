@@ -1,6 +1,7 @@
 use std::{collections::HashMap, usize};
 
 use ast::{
+    builtin::Builtin as SourceBuiltin,
     expression::{Binder, Expression},
     function::Function,
     identifier::Identifier,
@@ -97,28 +98,24 @@ impl DeBruijnContext {
                     self.convert_term(value),
                 )
             }
-            Expression::Builtin(builtin_source) => {
-                Expr::Builtin(Builtin::from_source(builtin_source, self))
-            }
+            Expression::Builtin(builtin) => Expr::Builtin(match builtin {
+                SourceBuiltin::Prop => Builtin::Prop,
+                SourceBuiltin::Type(u) => Builtin::Type(*u),
+            }),
             Expression::Arrow {
                 dependent,
                 typ,
                 body,
             } => {
                 let new_typ = self.convert_term(typ);
-
                 self.local.push(dependent.clone());
-
                 let new_body = self.convert_term(body);
-
                 self.local.pop();
-
                 Expr::construct_pi(new_typ, new_body)
             }
-            Expression::App { function, argument } => Expr::App {
-                func: Box::new(self.convert_term(function)),
-                arg: Box::new(self.convert_term(argument)),
-            },
+            Expression::App { func, arg } => {
+                Expr::construct_application(self.convert_term(func), self.convert_term(arg))
+            }
         }
     }
 }
@@ -206,8 +203,8 @@ impl GlobalContext {
             Some(Ref::Ind(index))
         } else if let Some(&(inductive, constructor)) = self.constructors.get(name) {
             Some(Ref::Cons(ConsRef {
-                inductive,
-                constructor,
+                ind: inductive,
+                cons: constructor,
             }))
         } else {
             None
