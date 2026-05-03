@@ -1,5 +1,4 @@
 pub mod ast;
-pub mod builtin;
 pub mod expression;
 pub mod function;
 pub mod identifier;

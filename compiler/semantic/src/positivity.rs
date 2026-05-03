@@ -12,10 +12,10 @@ pub fn check_namespace(namespace: &Namespace) {
         }
     }
 
-    // for func in namespace.functions.iter() {
-    //     let expected_type = func.return_type.clone();
-    //     let inferred_type = infer_type(&func.definition, todo!(), todo!());
-    // }
+    for func in namespace.functions.iter() {
+        let mut ctx = Context::new();
+        check_type(&func.definition, &func.return_type, &mut ctx, namespace);
+    }
 }
 
 fn infer_type(expr: &Expr, ctx: &mut Context, namespace: &Namespace) -> Expr {
@@ -23,29 +23,74 @@ fn infer_type(expr: &Expr, ctx: &mut Context, namespace: &Namespace) -> Expr {
         Expr::Var(i) => ctx.lookup(*i).clone(),
         Expr::Ref(r) => infer_global(r, namespace),
         Expr::App { func, arg } => {
+            dbg!(&func);
             let func_ty = infer_type(func, ctx, namespace);
+            dbg!(&func_ty);
             let func_ty = whnf(&func_ty, namespace);
+            dbg!(&func_ty);
 
             match func_ty {
                 Expr::Pi { typ, body } => {
                     check_type(arg, &typ, ctx, namespace);
                     substitute(&body, arg, 0)
                 }
-                _ => panic!("Expected pi type"),
+                _ => panic!("Expected pi type {:?}", func_ty),
             }
         }
         Expr::Lambda { typ, body } => {
-            let param_ty = typ.clone();
+            let param_ty = typ
+                .as_ref()
+                .clone()
+                .expect("Cannot infer type of unannotated lambda");
+            ctx.extend(param_ty.clone());
+
+            let body_ty = infer_type(body, ctx, namespace);
+            ctx.pop();
+
+            Expr::construct_pi(param_ty, body_ty)
+        }
+        Expr::Match {
+            scrutinee,
+            branches,
+        } => {
+            let scrutinee_typ = infer_type(scrutinee, ctx, namespace);
+            let scrutinee_typ = whnf(&scrutinee_typ, namespace);
+
+            for (cons_ref, body) in branches {
+                let branch_typ =
+                    &namespace.inductives[cons_ref.ind].constructors[cons_ref.cons].typ;
+
+                check_type(&body, branch_typ, ctx, namespace);
+            }
+
             todo!()
         }
         _ => todo!(),
     }
 }
 
-fn check_type(expr: &Expr, expected: &Expr, ctx: &mut Context, namespace: &Namespace) {}
+fn check_type(expr: &Expr, expected: &Expr, ctx: &mut Context, namespace: &Namespace) {
+    let inferred = infer_type(expr, ctx, namespace);
+
+    let inferred_nf = whnf(&inferred, namespace);
+    let expected_nf = whnf(expected, namespace);
+
+    if inferred_nf != expected_nf {
+        panic!(
+            "Type mismatch:\n inferred: {:?}\n expected: {:?}",
+            inferred_nf, expected_nf
+        )
+    }
+}
 
 fn infer_global(r: &Ref, namespace: &Namespace) -> Expr {
-    todo!()
+    match r {
+        Ref::Fn(i) => namespace.functions[*i].return_type.clone(),
+        Ref::Ind(i) => namespace.inductives[*i].typ.clone(),
+        Ref::Cons(cons_ref) => namespace.inductives[cons_ref.ind].constructors[cons_ref.cons]
+            .typ
+            .clone(),
+    }
 }
 
 pub fn check_inductive_definition(ind: usize, typ: &Expr) {

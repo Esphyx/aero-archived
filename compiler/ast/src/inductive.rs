@@ -1,7 +1,7 @@
 use lexer::token::TokenKind;
 use parser::{error::ParseError, parser::Parser};
 
-use crate::{identifier::Identifier, parameter::Parameter, expression::Expression};
+use crate::{expression::Expression, identifier::Identifier, parameter::Parameter};
 
 #[derive(Debug)]
 pub struct Inductive {
@@ -31,7 +31,7 @@ impl Inductive {
             if matches!(parser.current().kind, TokenKind::Pipe) {
                 parser.advance();
             }
-            constructors.push(Constructor::parse(parser, &parameters)?);
+            constructors.push(Constructor::parse(parser)?);
         }
 
         parser.expect_token(TokenKind::SemiColon)?;
@@ -52,7 +52,7 @@ pub struct Constructor {
 }
 
 impl Constructor {
-    pub fn parse(parser: &mut Parser, parameters: &Vec<Parameter>) -> Result<Self, ParseError> {
+    pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
         let name = Identifier::parse(parser)?;
         parser.expect_token(TokenKind::Colon)?;
         let typ = Expression::parse(parser)?;

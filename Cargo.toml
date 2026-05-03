@@ -10,13 +10,17 @@ parser = { path = "compiler/parser" }
 ast = { path = "compiler/ast" }
 hir = { path = "compiler/hir" }
 semantic = { path = "compiler/semantic" }
+visualizer = { path = "compiler/visualizer" }
 
 [workspace]
 members = [
     "compiler/assembler",
-    "compiler/ast", "compiler/generator",
+    "compiler/ast",
+    "compiler/generator",
     "compiler/hir",
     "compiler/lexer",
     "compiler/parser",
-    "compiler/semantic", "lsp",
+    "compiler/semantic",
+    "compiler/visualizer",
+    "lsp",
 ]

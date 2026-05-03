@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use ast::builtin::Builtin as SourceBuiltin;
+use ast::expression::Builtin as SourceBuiltin;
 
 use crate::lowering::de_bruijn::Context;
 

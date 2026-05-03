@@ -19,7 +19,12 @@ pub fn compile(input: String) -> Result<(), Box<dyn std::error::Error>> {
 
     let namespace = Namespace::from(&ast);
 
-    dbg!(&namespace);
+    check_namespace(&namespace);
+
+    let expr = &namespace.functions[0].definition;
+
+    dbg!(&expr);
+    println!("{}", visualizer::pretty(expr));
 
     check_namespace(&namespace);
 

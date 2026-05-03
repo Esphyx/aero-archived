@@ -1,14 +1,15 @@
-use std::{collections::HashMap, usize};
-
 use ast::{
-    builtin::Builtin as SourceBuiltin,
-    expression::{Binder, Expression},
-    function::Function,
-    identifier::Identifier,
+    expression::{Binder, Builtin as SourceBuiltin, Expression},
     namespace::Namespace,
 };
 
-use crate::lowering::expr::{Builtin, ConsRef, Expr, Ref};
+use crate::lowering::{
+    de_bruijn::{global::GlobalContext, local::LocalContext},
+    expr::{Builtin, ConsRef, Expr, Ref},
+};
+
+pub mod global;
+pub mod local;
 
 pub struct Context {
     pub local: LocalContext,
@@ -65,7 +66,7 @@ impl Context {
                 }
             }
             Expression::Identifier(id) => {
-                if let Some(index) = self.local.lookup_index(id) {
+                if let Some(index) = self.local.resolve(id) {
                     Expr::Var(index)
                 } else if let Some(global_ref) = self.global.resolve(id) {
                     Expr::Ref(global_ref)
@@ -113,98 +114,6 @@ impl Context {
             Expression::App { func, arg } => {
                 Expr::construct_application(self.convert_term(func), self.convert_term(arg))
             }
-        }
-    }
-}
-
-pub struct LocalContext {
-    stack: Vec<Binder>,
-}
-
-impl LocalContext {
-    pub fn new() -> Self {
-        Self { stack: Vec::new() }
-    }
-
-    pub fn push(&mut self, binder: Binder) {
-        self.stack.push(binder);
-    }
-
-    pub fn pop(&mut self) {
-        self.stack.pop();
-    }
-
-    pub fn lookup_index(&self, id: &Identifier) -> Option<usize> {
-        self.stack
-            .iter()
-            .rev()
-            .enumerate()
-            .find_map(|(i, binder)| match binder {
-                Binder::Named(bound) if bound.name == id.name => Some(i),
-                _ => None,
-            })
-    }
-}
-
-pub struct GlobalContext {
-    functions: HashMap<String, usize>,
-    inductives: HashMap<String, usize>,
-    constructors: HashMap<String, (usize, usize)>,
-}
-
-impl GlobalContext {
-    pub fn new(namespace: &Namespace) -> Self {
-        let functions = namespace
-            .functions
-            .iter()
-            .enumerate()
-            .map(|(i, Function { name, .. })| (name.get_name_str().into(), i))
-            .collect();
-
-        let inductives = namespace
-            .inductives
-            .iter()
-            .enumerate()
-            .map(|(i, ind)| (ind.name.get_name_str().into(), i))
-            .collect();
-
-        let constructors = namespace
-            .inductives
-            .iter()
-            .enumerate()
-            .flat_map(|(inductive_index, source_inductive)| {
-                source_inductive.constructors.iter().enumerate().map(
-                    move |(constructor_index, con)| {
-                        (
-                            con.name.get_name_str().into(),
-                            (inductive_index, constructor_index),
-                        )
-                    },
-                )
-            })
-            .collect();
-
-        Self {
-            functions,
-            inductives,
-            constructors,
-        }
-    }
-
-    pub fn resolve(&self, id: &Identifier) -> Option<Ref> {
-        let name = id.get_name_str();
-
-        if let Some(&index) = self.functions.get(name) {
-            Some(Ref::Fn(index))
-        } else if let Some(&index) = self.inductives.get(name) {
-            Some(Ref::Ind(index))
-        } else if let Some(&(inductive, constructor)) = self.constructors.get(name) {
-            Some(Ref::Cons(ConsRef {
-                ind: inductive,
-                cons: constructor,
-            }))
-        } else {
-            None
         }
     }
 }

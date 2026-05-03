@@ -1,7 +1,7 @@
 use lexer::token::TokenKind;
 use parser::{error::ParseError, parser::Parser};
 
-use crate::{builtin::Builtin, identifier::Identifier};
+use crate::identifier::Identifier;
 
 #[derive(Debug, Clone)]
 pub enum Expression {
@@ -31,6 +31,12 @@ pub enum Expression {
         scrutinee: Box<Self>,
         branches: Vec<Branch>,
     },
+}
+
+#[derive(Debug, Clone)]
+pub enum Builtin {
+    Prop,
+    Type(u32),
 }
 
 #[derive(Debug, Clone)]

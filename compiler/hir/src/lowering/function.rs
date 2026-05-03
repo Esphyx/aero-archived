@@ -20,7 +20,10 @@ impl Lower<Function> for SourceFunction {
             ctx.local.push(Binder::Named(name.clone()));
         }
 
-        let return_type = ctx.convert_term(&self.return_type);
+        let mut return_type = ctx.convert_term(&self.return_type);
+        for typ in parameter_types.iter().rev() {
+            return_type = Expr::construct_pi(typ.clone(), return_type);
+        }
 
         let mut definition = ctx.convert_term(&self.body);
 

@@ -1,9 +1,7 @@
-use std::fmt::Debug;
-
 use lexer::token::TokenKind;
 use parser::{error::ParseError, parser::Parser};
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Identifier {
     pub name: String,
 }
@@ -20,7 +18,7 @@ impl Identifier {
             parser.advance();
             Ok(Self { name })
         } else {
-            panic!("Expected identifier! {:?}", current_token.kind);
+            panic!("Expected identifier! found: {:?}", current_token.kind);
         }
     }
 
@@ -32,11 +30,5 @@ impl Identifier {
 
     pub fn get_name_str(&self) -> &str {
         &self.name
-    }
-}
-
-impl Debug for Identifier {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\"{}\"", self.get_name_str())
     }
 }
