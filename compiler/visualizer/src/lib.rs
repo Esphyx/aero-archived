@@ -17,14 +17,16 @@ pub fn print_indent(output: &mut String, expr: &Expr, indent: usize, new_line: b
         Expr::Builtin(builtin) => output.push_str(&format!("{:?}", builtin)),
         Expr::Ref(r) => output.push_str(&format!("{:?}", r)),
         Expr::Pi { typ, body } => {
+            output.push_str("(");
             print_indent(output, typ, indent, false);
-            output.push_str("->");
+            output.push_str(" -> ");
             print_indent(output, body, indent, false);
+            output.push_str(")");
         }
         Expr::Lambda { typ, body } => {
-            output.push_str("fun _ : ");
+            output.push_str("λ(");
             print_indent(output, &typ.clone().unwrap(), 0, false);
-            output.push_str(" => ");
+            output.push_str("), ");
             print_indent(output, body, indent + 4, true);
         }
         Expr::App { func, arg } => {

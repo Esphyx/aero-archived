@@ -1,10 +1,10 @@
 use std::{error::Error, fs};
 
 use ast::ast::AST;
-use hir::lowering::program::Namespace;
+use hir::lowering::namespace::Namespace;
 use lexer::lexer::Lexer;
 use parser::parser::Parser;
-use semantic::{kernel::whnf, positivity::check_namespace};
+use semantic::{context::Context, positivity::infer_type};
 
 fn main() -> Result<(), Box<dyn Error>> {
     compile(fs::read_to_string("example/src/main.aero")?)?;
@@ -19,14 +19,12 @@ pub fn compile(input: String) -> Result<(), Box<dyn std::error::Error>> {
 
     let namespace = Namespace::from(&ast);
 
-    check_namespace(&namespace);
-
     let expr = &namespace.functions[0].definition;
 
-    dbg!(&expr);
-    println!("{}", visualizer::pretty(expr));
+    let typ = &infer_type(expr, &mut Context::new(), &namespace);
 
-    check_namespace(&namespace);
+    println!("{:?}", expr);
+    println!("{:?}", typ);
 
     Ok(())
 }

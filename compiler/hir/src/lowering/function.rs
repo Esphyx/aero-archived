@@ -17,7 +17,7 @@ impl Lower<Function> for SourceFunction {
         let mut parameter_types = Vec::new();
         for Parameter { name, typ } in self.parameters.iter() {
             parameter_types.push(ctx.convert_term(typ));
-            ctx.local.push(Binder::Named(name.clone()));
+            ctx.local.extend(Binder::Named(name.clone()));
         }
 
         let mut return_type = ctx.convert_term(&self.return_type);

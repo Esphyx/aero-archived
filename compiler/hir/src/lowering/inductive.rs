@@ -18,7 +18,7 @@ pub struct Constructor {
 impl Lower<Inductive> for SourceInductive {
     fn lower(&self, ctx: &mut Context) -> Inductive {
         for p in self.parameters.iter() {
-            ctx.local.push(Binder::Named(p.name.clone()));
+            ctx.local.extend(Binder::Named(p.name.clone()));
         }
 
         let mut typ = ctx.convert_term(&self.typ);
@@ -29,7 +29,7 @@ impl Lower<Inductive> for SourceInductive {
         }
 
         for p in self.parameters.iter() {
-            ctx.local.push(Binder::Named(p.name.clone()));
+            ctx.local.extend(Binder::Named(p.name.clone()));
         }
 
         let mut constructors_types: Vec<Expr> = self

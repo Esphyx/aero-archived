@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 ast = { path = "../ast" }
 hir = { path = "../hir" }
+visualizer = { path = "../visualizer" }

@@ -6,6 +6,12 @@ pub struct Identifier {
     pub name: String,
 }
 
+impl From<String> for Identifier {
+    fn from(name: String) -> Self {
+        Self { name }
+    }
+}
+
 impl Identifier {
     pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
         let current_token = parser.current();

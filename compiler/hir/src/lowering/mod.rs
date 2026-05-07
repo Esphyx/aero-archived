@@ -2,7 +2,7 @@ pub mod de_bruijn;
 pub mod expr;
 pub mod function;
 pub mod inductive;
-pub mod program;
+pub mod namespace;
 
 use de_bruijn::Context;
 

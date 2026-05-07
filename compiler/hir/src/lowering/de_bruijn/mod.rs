@@ -32,7 +32,7 @@ impl Context {
                 body,
             } => {
                 let typ = Box::new(Some(self.convert_term(type_specifier)));
-                self.local.push(binder.clone());
+                self.local.extend(binder.clone());
                 let body = Box::new(self.convert_term(body));
                 self.local.pop();
                 Expr::Lambda { typ, body }
@@ -85,7 +85,7 @@ impl Context {
                     .as_ref()
                     .map(|t| self.convert_term(&t));
 
-                self.local.push(Binder::Named(name.clone()));
+                self.local.extend(Binder::Named(name.clone()));
 
                 let body = self.convert_term(body);
 
@@ -106,7 +106,7 @@ impl Context {
                 body,
             } => {
                 let new_typ = self.convert_term(typ);
-                self.local.push(dependent.clone());
+                self.local.extend(dependent.clone());
                 let new_body = self.convert_term(body);
                 self.local.pop();
                 Expr::construct_pi(new_typ, new_body)

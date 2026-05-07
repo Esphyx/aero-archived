@@ -1,9 +1,13 @@
 use hir::lowering::{
     expr::{Expr, Ref},
-    program::Namespace,
+    namespace::Namespace,
 };
 
-use crate::{context::Context, kernel::whnf, traversal::substitute};
+use crate::{
+    context::Context,
+    kernel::whnf,
+    traversal::{shift_indices, substitute},
+};
 
 pub fn check_namespace(namespace: &Namespace) {
     for (ind_index, inductive) in namespace.inductives.iter().enumerate() {
@@ -18,22 +22,19 @@ pub fn check_namespace(namespace: &Namespace) {
     }
 }
 
-fn infer_type(expr: &Expr, ctx: &mut Context, namespace: &Namespace) -> Expr {
+pub fn infer_type(expr: &Expr, ctx: &mut Context, namespace: &Namespace) -> Expr {
     match expr {
         Expr::Var(i) => ctx.lookup(*i).clone(),
         Expr::Ref(r) => infer_global(r, namespace),
         Expr::App { func, arg } => {
-            dbg!(&func);
             let func_ty = infer_type(func, ctx, namespace);
-            dbg!(&func_ty);
             let func_ty = whnf(&func_ty, namespace);
-            dbg!(&func_ty);
+
+            // println!("func_ty: {}", visualizer::pretty(&func_ty));
+            // println!("arg: {}", visualizer::pretty(&arg));
 
             match func_ty {
-                Expr::Pi { typ, body } => {
-                    check_type(arg, &typ, ctx, namespace);
-                    substitute(&body, arg, 0)
-                }
+                Expr::Pi { typ, body } => substitute(&body, &arg, 0),
                 _ => panic!("Expected pi type {:?}", func_ty),
             }
         }
@@ -53,6 +54,7 @@ fn infer_type(expr: &Expr, ctx: &mut Context, namespace: &Namespace) -> Expr {
             scrutinee,
             branches,
         } => {
+            todo!();
             let scrutinee_typ = infer_type(scrutinee, ctx, namespace);
             let scrutinee_typ = whnf(&scrutinee_typ, namespace);
 
@@ -71,6 +73,8 @@ fn infer_type(expr: &Expr, ctx: &mut Context, namespace: &Namespace) -> Expr {
 
 fn check_type(expr: &Expr, expected: &Expr, ctx: &mut Context, namespace: &Namespace) {
     let inferred = infer_type(expr, ctx, namespace);
+
+    println!("{}", visualizer::pretty(&expr));
 
     let inferred_nf = whnf(&inferred, namespace);
     let expected_nf = whnf(expected, namespace);

@@ -1,6 +1,6 @@
 use hir::lowering::{
     expr::{Expr, Ref},
-    program::Namespace,
+    namespace::Namespace,
 };
 
 use crate::traversal::{collect_spine, substitute};
@@ -23,13 +23,9 @@ fn delta_reduction(global_ref: &Ref, namespace: &Namespace) -> Expr {
 }
 
 fn beta_reduction(term: &Expr, namespace: &Namespace) -> Expr {
-    if let Expr::App {
-        func: function,
-        arg: argument,
-    } = term
-    {
-        let f = whnf(function, namespace);
-        let a = whnf(argument, namespace);
+    if let Expr::App { func, arg } = term {
+        let f = whnf(func, namespace);
+        let a = whnf(arg, namespace);
 
         match f {
             Expr::Lambda { body, .. } => {
