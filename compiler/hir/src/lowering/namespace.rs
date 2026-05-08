@@ -2,9 +2,7 @@ use ast::{
     ast::AST, function::Function as SourceFunction, inductive::Inductive as SourceInductive,
 };
 
-use crate::lowering::{
-    Lower, de_bruijn::Context, function::Function, inductive::Inductive,
-};
+use crate::lowering::{Lower, de_bruijn::Context, function::Function, inductive::Inductive};
 
 #[derive(Debug)]
 pub struct Namespace {
@@ -13,29 +11,26 @@ pub struct Namespace {
 }
 
 impl Namespace {
-    pub fn from(ast: &AST) -> Self {
+    pub fn from(ast: &AST) -> (Self, Context) {
         let mut context = Context::new(&ast.namespace);
 
         let inductives = Self::convert_inductives(&ast.namespace.inductives, &mut context);
         let functions = Self::convert_functions(&ast.namespace.functions, &mut context);
 
-        Self {
-            functions,
-            inductives,
-        }
+        (
+            Self {
+                functions,
+                inductives,
+            },
+            context,
+        )
     }
 
-    pub fn convert_functions(
-        source: &Vec<SourceFunction>,
-        ctx: &mut Context,
-    ) -> Vec<Function> {
+    pub fn convert_functions(source: &Vec<SourceFunction>, ctx: &mut Context) -> Vec<Function> {
         source.iter().map(|s| s.lower(ctx)).collect()
     }
 
-    pub fn convert_inductives(
-        source: &Vec<SourceInductive>,
-        ctx: &mut Context,
-    ) -> Vec<Inductive> {
+    pub fn convert_inductives(source: &Vec<SourceInductive>, ctx: &mut Context) -> Vec<Inductive> {
         source.iter().map(|s| s.lower(ctx)).collect()
     }
 }

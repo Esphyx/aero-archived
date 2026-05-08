@@ -1,5 +1,7 @@
 use hir::lowering::expr::Expr;
 
+use crate::traversal::shift_indices;
+
 pub struct Context {
     types: Vec<Expr>,
 }
@@ -10,7 +12,7 @@ impl Context {
     }
 
     pub fn extend(&mut self, typ: Expr) {
-        self.types.push(typ);
+        self.types.push(shift_indices(&typ, 0, 1));
     }
 
     pub fn pop(&mut self) {
@@ -18,6 +20,7 @@ impl Context {
     }
 
     pub fn lookup(&self, index: usize) -> Expr {
-        self.types[self.types.len() - 1 - index].clone()
+        let ty = &self.types[self.types.len() - 1 - index];
+        shift_indices(ty, 0, (index + 1) as isize)
     }
 }

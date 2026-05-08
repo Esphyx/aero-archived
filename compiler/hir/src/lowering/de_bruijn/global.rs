@@ -11,7 +11,7 @@ pub struct GlobalContext {
 }
 
 impl GlobalContext {
-    pub fn new(namespace: &Namespace) -> Self {
+    pub fn from(namespace: &Namespace) -> Self {
         let functions = namespace
             .functions
             .iter()

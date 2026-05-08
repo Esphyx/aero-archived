@@ -7,18 +7,12 @@ use crate::identifier::Identifier;
 pub enum Expression {
     Identifier(Identifier),
     Builtin(Builtin),
-    Let {
-        name: Identifier,
-        type_specifier: Box<Option<Self>>,
-        value: Box<Self>,
-        body: Box<Self>,
-    },
     Lambda {
         param: Binder,
         type_specifier: Box<Self>,
         body: Box<Self>,
     },
-    Arrow {
+    Pi {
         dependent: Binder,
         typ: Box<Self>,
         body: Box<Self>,
@@ -34,15 +28,15 @@ pub enum Expression {
 }
 
 #[derive(Debug, Clone)]
-pub enum Builtin {
-    Prop,
-    Type(u32),
-}
-
-#[derive(Debug, Clone)]
 pub enum Binder {
     Named(Identifier),
     Anonymous,
+}
+
+#[derive(Debug, Clone)]
+pub enum Builtin {
+    Prop,
+    Type(u32),
 }
 
 #[derive(Debug, Clone)]
@@ -72,10 +66,6 @@ impl Expression {
             return Self::parse_forall(parser);
         }
 
-        if matches!(current, TokenKind::Let) {
-            return Self::parse_let(parser);
-        }
-
         if matches!(current, TokenKind::Match) {
             return Self::parse_match(parser);
         }
@@ -102,7 +92,7 @@ impl Expression {
         while matches!(parser.current().kind, TokenKind::Arrow) {
             parser.advance();
             let rhs = Self::parse(parser)?;
-            lhs = Self::Arrow {
+            lhs = Self::Pi {
                 dependent: Binder::Anonymous,
                 typ: Box::new(lhs),
                 body: Box::new(rhs),
@@ -121,7 +111,7 @@ impl Expression {
         parser.expect_token(TokenKind::Comma)?;
         let body = Self::parse(parser)?;
 
-        Ok(Expression::Arrow {
+        Ok(Expression::Pi {
             dependent: Binder::Named(parameter),
             typ: Box::new(type_specifier),
             body: Box::new(body),
@@ -189,28 +179,5 @@ impl Expression {
     pub fn parse_type_specifier(parser: &mut Parser) -> Result<Self, ParseError> {
         parser.expect_token(TokenKind::Colon)?;
         Self::parse(parser)
-    }
-
-    pub fn parse_let(parser: &mut Parser) -> Result<Self, ParseError> {
-        parser.expect_token(TokenKind::Let)?;
-
-        let name = Identifier::parse(parser)?;
-
-        let type_specifier = Box::new(Some(Self::parse_type_specifier(parser)?));
-
-        parser.expect_token(TokenKind::Assign)?;
-
-        let value = Self::parse(parser)?;
-
-        parser.expect_token(TokenKind::SemiColon)?;
-
-        let body = Box::new(Self::parse(parser)?);
-
-        Ok(Self::Let {
-            name,
-            type_specifier,
-            value: Box::new(value),
-            body,
-        })
     }
 }

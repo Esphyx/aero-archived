@@ -1,13 +1,28 @@
+use std::collections::HashMap;
+
 use ast::{expression::Binder, identifier::Identifier};
 
+use crate::lowering::expr::BinderId;
+
+pub struct BinderInfo {
+    pub binder: Binder,
+}
+
+pub struct LocalBinder {
+    pub binder: Binder,
+    pub id: BinderId,
+}
+
 pub struct Scope {
-    pub parent: Option<usize>,
-    pub binders: Vec<Binder>,
+    parent: Option<usize>,
+    binders: Vec<LocalBinder>,
 }
 
 pub struct LocalContext {
     current: usize,
     scopes: Vec<Scope>,
+    next_id: usize,
+    binder_info: HashMap<BinderId, BinderInfo>,
 }
 
 impl LocalContext {
@@ -18,6 +33,8 @@ impl LocalContext {
                 parent: None,
                 binders: Vec::new(),
             }],
+            next_id: 0,
+            binder_info: HashMap::new(),
         }
     }
 
@@ -37,28 +54,47 @@ impl LocalContext {
             .expect("Cannot leave root scope")
     }
 
-    pub fn bind(&mut self, binder: Binder) {
-        self.scopes[self.current].binders.push(binder);
+    pub fn bind(&mut self, binder: Binder) -> BinderId {
+        let id = BinderId { id: self.next_id };
+
+        self.next_id += 1;
+
+        self.binder_info.insert(
+            id,
+            BinderInfo {
+                binder: binder.clone(),
+            },
+        );
+
+        self.scopes[self.current]
+            .binders
+            .push(LocalBinder { binder, id });
+
+        id
     }
 
-    pub fn extend(&mut self, binder: Binder) {
+    pub fn binder_name(&self, id: &BinderId) -> Option<&Binder> {
+        self.binder_info.get(id).map(|i| &i.binder)
+    }
+
+    pub fn extend(&mut self, binder: Binder) -> BinderId {
         self.enter_scope();
-        self.bind(binder);
+        self.bind(binder)
     }
 
     pub fn pop(&mut self) {
         self.leave_scope();
     }
 
-    pub fn resolve(&self, id: &Identifier) -> Option<usize> {
+    pub fn resolve(&self, id: &Identifier) -> Option<(usize, BinderId)> {
         let mut scope = self.current;
         let mut depth = 0;
 
         loop {
             let current = &self.scopes[scope];
             for binder in current.binders.iter().rev() {
-                match binder {
-                    Binder::Named(bound) if bound == id => return Some(depth),
+                match &binder.binder {
+                    Binder::Named(bound) if bound == id => return Some((depth, binder.id)),
                     _ => depth += 1,
                 }
             }

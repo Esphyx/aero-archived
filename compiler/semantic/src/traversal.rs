@@ -15,31 +15,41 @@ pub fn collect_spine(term: &Expr) -> (Expr, Vec<Expr>) {
 
 pub fn substitute(term: &Expr, value: &Expr, depth: usize) -> Expr {
     match term {
-        Expr::Var(distance) => {
+        Expr::Var {
+            index: distance,
+            binder,
+        } => {
             if *distance == depth {
                 // replace with shifted value
                 shift_indices(value, 0, depth as isize)
             } else if *distance > depth {
                 // free variable decreases by 1 due to lambda being dropped
-                Expr::Var(distance - 1)
+                Expr::Var {
+                    index: distance - 1,
+                    binder: binder.clone(),
+                }
             } else {
-                Expr::Var(*distance)
+                Expr::Var {
+                    index: *distance,
+                    binder: binder.clone(),
+                }
             }
         }
-        Expr::Lambda { typ, body } => {
-            let l = typ.as_ref().as_ref().map(|t| substitute(&t, value, depth));
-            Expr::construct_binding(
-                l,
+        Expr::Lambda { binder, typ, body } => {
+            Expr::construct_lambda(
+                *binder,
+                substitute(typ, value, depth),
                 substitute(body, value, depth + 1), // increase depth, because Var(0) points to lambda argument
             )
         }
-        Expr::Pi { typ, body } => Expr::construct_pi(
+        Expr::Pi { binder, typ, body } => Expr::construct_pi(
+            *binder,
             substitute(typ, value, depth),
             substitute(body, value, depth + 1), // increase depth, because Var(0) points to dependent type
         ),
-        Expr::App { func: function, arg: argument } => Expr::construct_application(
-            substitute(function, value, depth),
-            substitute(argument, value, depth),
+        Expr::App { func, arg } => Expr::construct_application(
+            substitute(func, value, depth),
+            substitute(arg, value, depth),
         ),
         Expr::Match {
             scrutinee,
@@ -63,20 +73,28 @@ pub fn substitute(term: &Expr, value: &Expr, depth: usize) -> Expr {
 // shifts de Bruijn indices by amount starting at cutoff
 pub fn shift_indices(term: &Expr, cutoff: usize, amount: isize) -> Expr {
     match term {
-        Expr::Var(idx) => {
-            if *idx >= cutoff {
-                Expr::Var((*idx as isize + amount) as usize)
+        Expr::Var { index, binder } => {
+            if *index >= cutoff {
+                Expr::Var {
+                    index: (*index as isize + amount) as usize,
+                    binder: binder.clone(),
+                }
             } else {
-                Expr::Var(*idx)
+                Expr::Var {
+                    index: *index,
+                    binder: binder.clone(),
+                }
             }
         }
 
-        Expr::Lambda { typ, body } => {
-            let typ = typ.as_ref().as_ref().map(|t| shift_indices(t, cutoff, amount));
-            Expr::construct_binding(typ, shift_indices(body, cutoff + 1, amount))
-        }
+        Expr::Lambda { binder, typ, body } => Expr::construct_lambda(
+            *binder,
+            shift_indices(typ, cutoff, amount),
+            shift_indices(body, cutoff + 1, amount),
+        ),
 
-        Expr::Pi { typ, body } => Expr::construct_pi(
+        Expr::Pi { binder, typ, body } => Expr::construct_pi(
+            *binder,
             shift_indices(typ, cutoff, amount),
             shift_indices(body, cutoff + 1, amount),
         ),

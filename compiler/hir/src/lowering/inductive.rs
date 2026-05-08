@@ -17,19 +17,24 @@ pub struct Constructor {
 
 impl Lower<Inductive> for SourceInductive {
     fn lower(&self, ctx: &mut Context) -> Inductive {
+        let mut binder_ids = Vec::new();
+
         for p in self.parameters.iter() {
-            ctx.local.extend(Binder::Named(p.name.clone()));
+            let binder_id = ctx.local.extend(Binder::Named(p.name.clone()));
+            binder_ids.push(binder_id);
         }
 
         let mut typ = ctx.convert_term(&self.typ);
 
-        for p in self.parameters.iter().rev() {
+        for (p, binder_id) in self.parameters.iter().zip(binder_ids.iter()).rev() {
             ctx.local.pop();
-            typ = Expr::construct_pi(ctx.convert_term(&p.typ), typ);
+            typ = Expr::construct_pi(Some(*binder_id), ctx.convert_term(&p.typ), typ);
         }
 
+        let mut binder_ids = Vec::new();
         for p in self.parameters.iter() {
-            ctx.local.extend(Binder::Named(p.name.clone()));
+            let binder_id = ctx.local.extend(Binder::Named(p.name.clone()));
+            binder_ids.push(binder_id);
         }
 
         let mut constructors_types: Vec<Expr> = self
@@ -38,12 +43,14 @@ impl Lower<Inductive> for SourceInductive {
             .map(|c| ctx.convert_term(&c.typ))
             .collect();
 
-        for p in self.parameters.iter().rev() {
+        for (p, binder_id) in self.parameters.iter().zip(binder_ids.iter()).rev() {
             ctx.local.pop();
+
+            let param_ty = ctx.convert_term(&p.typ);
 
             constructors_types = constructors_types
                 .into_iter()
-                .map(|t| Expr::construct_pi(ctx.convert_term(&p.typ), t))
+                .map(|t| Expr::construct_pi(Some(*binder_id), param_ty.clone(), t))
                 .collect();
         }
 

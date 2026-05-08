@@ -1,20 +1,26 @@
 use std::fmt::Debug;
 
-use ast::expression::Builtin as SourceBuiltin;
-
-use crate::lowering::de_bruijn::Context;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct BinderId {
+    pub id: usize,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
-    Var(usize),
+    Var {
+        index: usize,
+        binder: Option<BinderId>,
+    },
     Builtin(Builtin),
     Ref(Ref),
     Pi {
+        binder: Option<BinderId>,
         typ: Box<Self>,
         body: Box<Self>,
     },
     Lambda {
-        typ: Box<Option<Self>>,
+        binder: Option<BinderId>,
+        typ: Box<Self>,
         body: Box<Self>,
     },
     App {
@@ -28,24 +34,26 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn construct_pi(typ: Self, body: Self) -> Self {
+    pub fn construct_pi(binder: Option<BinderId>, typ: Self, body: Self) -> Self {
         Self::Pi {
+            binder,
             typ: Box::new(typ),
             body: Box::new(body),
         }
     }
 
-    pub fn construct_binding(typ: Option<Self>, body: Self) -> Self {
+    pub fn construct_lambda(binder: Option<BinderId>, typ: Self, body: Self) -> Self {
         Self::Lambda {
+            binder,
             typ: Box::new(typ),
             body: Box::new(body),
         }
     }
 
-    pub fn construct_application(function: Self, argument: Self) -> Self {
+    pub fn construct_application(func: Self, arg: Self) -> Self {
         Self::App {
-            func: Box::new(function),
-            arg: Box::new(argument),
+            func: Box::new(func),
+            arg: Box::new(arg),
         }
     }
 }
@@ -67,13 +75,4 @@ pub struct ConsRef {
 pub enum Builtin {
     Prop,
     Type(u32),
-}
-
-impl Builtin {
-    pub fn from_source<'a>(builtin_type: &'a SourceBuiltin, _: &mut Context) -> Self {
-        match builtin_type {
-            SourceBuiltin::Prop => Self::Prop,
-            SourceBuiltin::Type(u) => Self::Type(*u),
-        }
-    }
 }
