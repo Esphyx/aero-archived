@@ -1,4 +1,4 @@
-use ast::{
+use syntax::{
     expression::{Binder, Branch, Builtin as SourceBuiltin, Expression},
     namespace::Namespace,
 };
@@ -35,7 +35,7 @@ impl Context {
                 } else if let Some(global_ref) = self.global.resolve(id) {
                     Expr::Ref(global_ref)
                 } else {
-                    panic!("Unbound identifier '{}'! {:?}", id.get_name_str(), source);
+                    panic!("Unbound identifier '{}'! {:?}", id.to_string(), source);
                 }
             }
             Expression::Lambda {

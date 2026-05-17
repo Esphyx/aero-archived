@@ -1,4 +1,4 @@
-use ast::{expression::Binder, identifier::Identifier, inductive::Inductive as SourceInductive};
+use syntax::{expression::Binder, identifier::Identifier, inductive::Inductive as SourceInductive};
 
 use crate::lowering::{Lower, de_bruijn::Context, expr::Expr};
 

@@ -8,6 +8,7 @@ pub enum ParseErrorKind {
         message: String,
     },
     UnexpectedEof,
+    ExpectedIdentifier,
     Custom(String),
 }
 

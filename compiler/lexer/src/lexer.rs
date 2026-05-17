@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use crate::token::Span;
+
 use super::token::{Token, TokenKind};
 
 #[derive(Debug)]
@@ -57,22 +59,9 @@ impl Lexer {
             }
         }
 
-        let kind = match id.as_str() {
-            "let" => TokenKind::Let,
-            "ind" => TokenKind::Inductive,
-            "fn" => TokenKind::Fn,
-            "Prop" => TokenKind::Prop,
-            "Type" => TokenKind::Type,
-            "unit" => TokenKind::Unit,
-            "Self" => TokenKind::SelfType,
-            "todo" => TokenKind::Todo,
-            "lambda" => TokenKind::Lambda,
-            "match" => TokenKind::Match,
-            "with" => TokenKind::With,
-            "forall" => TokenKind::Forall,
-            _ => TokenKind::Identifier,
-        };
-        Token::new(kind, self.position - id.len(), id.len())
+        let kind = TokenKind::from_str(&id).unwrap_or(TokenKind::Identifier);
+
+        Token::new(kind, Span::new(self.position - id.len(), id.len()))
     }
 
     fn skip_whitespace(&mut self) {
@@ -96,8 +85,7 @@ impl Lexer {
 
         Token::new(
             TokenKind::Comment,
-            saved_position - 1,
-            comment_text.len() + 1,
+            Span::new(saved_position - 1, comment_text.len() + 1),
         )
     }
 
@@ -121,22 +109,31 @@ impl Lexer {
         self.skip_whitespace();
 
         let Some(c) = self.current() else {
-            return Ok(Token::new(TokenKind::EoF, self.position, 0));
+            return Ok(Token::new(TokenKind::EoF, Span::new(self.position, 0)));
         };
 
         if self.starts_with("->") {
             self.advance_n(2);
-            return Ok(Token::new(TokenKind::Arrow, self.position - 2, 2));
+            return Ok(Token::new(
+                TokenKind::Arrow,
+                Span::new(self.position - 2, 2),
+            ));
         }
 
         if self.starts_with("=>") {
             self.advance_n(2);
-            return Ok(Token::new(TokenKind::FatArrow, self.position - 2, 2));
+            return Ok(Token::new(
+                TokenKind::FatArrow,
+                Span::new(self.position - 2, 2),
+            ));
         }
 
         if self.starts_with("<-") {
             self.advance_n(2);
-            return Ok(Token::new(TokenKind::Assign, self.position - 2, 2));
+            return Ok(Token::new(
+                TokenKind::Assign,
+                Span::new(self.position - 2, 2),
+            ));
         }
 
         if self.starts_with("#") {
@@ -146,7 +143,10 @@ impl Lexer {
 
         if self.starts_with(":=") {
             self.advance_n(2);
-            return Ok(Token::new(TokenKind::Assign, self.position - 2, 2));
+            return Ok(Token::new(
+                TokenKind::Assign,
+                Span::new(self.position - 2, 2),
+            ));
         }
 
         if c.is_alphabetic() || c == '_' {
@@ -171,6 +171,6 @@ impl Lexer {
 
         self.advance();
 
-        Ok(Token::new(kind, self.position - 1, 1))
+        Ok(Token::new(kind, Span::new(self.position - 1, 1)))
     }
 }

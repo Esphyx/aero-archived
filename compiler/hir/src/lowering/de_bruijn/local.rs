@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use ast::{expression::Binder, identifier::Identifier};
+use syntax::{expression::Binder, identifier::Identifier};
 
 use crate::lowering::expr::BinderId;
 
@@ -75,6 +75,16 @@ impl LocalContext {
 
     pub fn binder_name(&self, id: &BinderId) -> Option<&Binder> {
         self.binder_info.get(id).map(|i| &i.binder)
+    }
+
+    pub fn binder_display_name(&self, id: BinderId) -> String {
+        self.binder_info
+            .get(&id)
+            .map(|b| match &b.binder {
+                Binder::Named(n) => n.to_string(),
+                _ => "_".to_string(),
+            })
+            .unwrap_or("_".to_string())
     }
 
     pub fn extend(&mut self, binder: Binder) -> BinderId {

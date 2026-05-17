@@ -17,13 +17,13 @@ impl Parser {
         })
     }
 
-    pub fn error<T>(&self, kind: ParseErrorKind) -> Result<T, ParseError> {
-        Err(ParseError {
+    pub fn error(&self, kind: ParseErrorKind) -> ParseError {
+        ParseError {
             kind,
-            position: self.current().position,
+            position: self.current().span.start,
             found: Some(self.current().clone()),
             context: Vec::new(),
-        })
+        }
     }
 
     pub fn current(&self) -> &Token {
@@ -52,23 +52,10 @@ impl Parser {
                     found: current.kind.clone(),
                     message: format!("Expected {:?}, found {:?}", expected, current.kind),
                 },
-                position: current.position,
+                position: current.span.start,
                 found: Some(current.clone()),
                 context: Vec::new(),
             })
         }
     }
-
-
-    // pub fn optional<F, T>(&mut self, parser: F) -> Result<Option<T>, ParseError>
-    // where
-    //     F: Fn(&mut Self) -> Result<T, ParseError>,
-    // {
-    //     // TODO
-    //     let back_up = self.position;
-    //     match parser(self) {
-    //         Ok(result) => Ok(Some(result)),
-    //         Err(e) => Err(e),
-    //     }
-    // }
 }

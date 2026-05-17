@@ -1,4 +1,4 @@
-use ast::{
+use syntax::{
     expression::Binder, function::Function as SourceFunction, identifier::Identifier,
     parameter::Parameter,
 };

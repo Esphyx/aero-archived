@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 hir = { path = "../hir" }
-ast = { path = "../ast" }
+syntax = { path = "../syntax" }

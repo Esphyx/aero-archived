@@ -7,7 +7,7 @@ edition = "2024"
 colored = "3.1.1"
 lexer = { path = "compiler/lexer" }
 parser = { path = "compiler/parser" }
-ast = { path = "compiler/ast" }
+syntax = { path = "compiler/syntax" }
 hir = { path = "compiler/hir" }
 semantic = { path = "compiler/semantic" }
 visualizer = { path = "compiler/visualizer" }
@@ -15,7 +15,7 @@ visualizer = { path = "compiler/visualizer" }
 [workspace]
 members = [
     "compiler/assembler",
-    "compiler/ast",
+    "compiler/syntax",
     "compiler/generator",
     "compiler/hir",
     "compiler/lexer",

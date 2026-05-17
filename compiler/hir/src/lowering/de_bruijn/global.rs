@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use ast::{function::Function, identifier::Identifier, namespace::Namespace};
+use syntax::{function::Function, identifier::Identifier, namespace::Namespace};
 
 use crate::lowering::expr::{ConsRef, Ref};
 
@@ -16,14 +16,14 @@ impl GlobalContext {
             .functions
             .iter()
             .enumerate()
-            .map(|(i, Function { name, .. })| (name.get_name_str().into(), i))
+            .map(|(i, Function { name, .. })| (name.to_string(), i))
             .collect();
 
         let inductives = namespace
             .inductives
             .iter()
             .enumerate()
-            .map(|(i, ind)| (ind.name.get_name_str().into(), i))
+            .map(|(i, ind)| (ind.name.to_string(), i))
             .collect();
 
         let constructors = namespace
@@ -33,10 +33,7 @@ impl GlobalContext {
             .flat_map(|(inductive_index, source_inductive)| {
                 source_inductive.constructors.iter().enumerate().map(
                     move |(constructor_index, con)| {
-                        (
-                            con.name.get_name_str().into(),
-                            (inductive_index, constructor_index),
-                        )
+                        (con.name.to_string(), (inductive_index, constructor_index))
                     },
                 )
             })
@@ -50,13 +47,13 @@ impl GlobalContext {
     }
 
     pub fn resolve(&self, id: &Identifier) -> Option<Ref> {
-        let name = id.get_name_str();
+        let name = id.to_string();
 
-        if let Some(&index) = self.functions.get(name) {
+        if let Some(&index) = self.functions.get(&name) {
             Some(Ref::Fn(index))
-        } else if let Some(&index) = self.inductives.get(name) {
+        } else if let Some(&index) = self.inductives.get(&name) {
             Some(Ref::Ind(index))
-        } else if let Some(&(inductive, constructor)) = self.constructors.get(name) {
+        } else if let Some(&(inductive, constructor)) = self.constructors.get(&name) {
             Some(Ref::Cons(ConsRef {
                 ind: inductive,
                 cons: constructor,

@@ -1,17 +1,28 @@
-#[derive(Debug, Clone)]
-pub struct Token {
-    pub kind: TokenKind,
-    pub position: usize,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Span {
+    pub start: usize,
     pub length: usize,
 }
 
+impl Span {
+    pub fn new(start: usize, length: usize) -> Self {
+        Self { start, length }
+    }
+
+    pub fn end(&self) -> usize {
+        self.start + self.length
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Token {
+    pub kind: TokenKind,
+    pub span: Span,
+}
+
 impl Token {
-    pub fn new(kind: TokenKind, position: usize, length: usize) -> Self {
-        Self {
-            kind,
-            position,
-            length,
-        }
+    pub fn new(kind: TokenKind, span: Span) -> Self {
+        Self { kind, span }
     }
 }
 
@@ -31,10 +42,6 @@ pub enum TokenKind {
     Colon, SemiColon,Comma, Arrow, Pipe, FatArrow, Wildcard,
     // BRACES
     OpenBracket, CloseBracket, OpenParen, CloseParen, OpenBrace, CloseBrace,
-    // UNUSED
-    // Virtual, Entry, Do, While, Loop, Break, Continue, Snail, External, Total, Partial,
-    // Plus, Minus, Star, Slash, Greater, Less, ShiftRight, ShiftLeft, Period, 
-    // END OF FILE 
     EoF,
 }
 
@@ -44,7 +51,15 @@ impl TokenKind {
             "let" => TokenKind::Let,
             "ind" => TokenKind::Inductive,
             "fn" => TokenKind::Fn,
-            "=>" => TokenKind::Arrow,
+            "Prop" => TokenKind::Prop,
+            "Type" => TokenKind::Type,
+            "unit" => TokenKind::Unit,
+            "Self" => TokenKind::SelfType,
+            "todo" => TokenKind::Todo,
+            "lambda" => TokenKind::Lambda,
+            "match" => TokenKind::Match,
+            "with" => TokenKind::With,
+            "forall" => TokenKind::Forall,
             _ => return None,
         })
     }

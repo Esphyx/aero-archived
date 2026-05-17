@@ -56,6 +56,16 @@ impl Expr {
             arg: Box::new(arg),
         }
     }
+
+    pub fn construct_match<T: IntoIterator<Item = (ConsRef, Self)>>(
+        scrut: Self,
+        branches: T,
+    ) -> Self {
+        Self::Match {
+            scrutinee: Box::new(scrut),
+            branches: branches.into_iter().collect(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

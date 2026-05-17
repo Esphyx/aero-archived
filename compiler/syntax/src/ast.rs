@@ -5,11 +5,11 @@ use parser::{error::ParseError, parser::Parser};
 use crate::namespace::Namespace;
 
 #[derive(Debug)]
-pub struct AST {
+pub struct Syntax {
     pub namespace: Namespace,
 }
 
-impl AST {
+impl Syntax {
     pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
         Ok(Self {
             namespace: Namespace::parse(parser)?,

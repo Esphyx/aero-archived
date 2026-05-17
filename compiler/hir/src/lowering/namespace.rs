@@ -1,5 +1,5 @@
-use ast::{
-    ast::AST, function::Function as SourceFunction, inductive::Inductive as SourceInductive,
+use syntax::{
+    ast::Syntax, function::Function as SourceFunction, inductive::Inductive as SourceInductive,
 };
 
 use crate::lowering::{Lower, de_bruijn::Context, function::Function, inductive::Inductive};
@@ -11,7 +11,7 @@ pub struct Namespace {
 }
 
 impl Namespace {
-    pub fn from(ast: &AST) -> (Self, Context) {
+    pub fn from(ast: &Syntax) -> (Self, Context) {
         let mut context = Context::new(&ast.namespace);
 
         let inductives = Self::convert_inductives(&ast.namespace.inductives, &mut context);

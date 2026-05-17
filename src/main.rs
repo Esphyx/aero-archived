@@ -1,10 +1,10 @@
 use std::{error::Error, fs};
 
-use ast::ast::AST;
 use hir::lowering::namespace::Namespace;
 use lexer::lexer::Lexer;
 use parser::parser::Parser;
-use semantic::typechecking::check_namespace;
+use semantic::kernel::Kernel;
+use syntax::ast::Syntax;
 
 fn main() -> Result<(), Box<dyn Error>> {
     compile(fs::read_to_string("example/src/main.aero")?)?;
@@ -15,11 +15,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 pub fn compile(input: String) -> Result<(), Box<dyn std::error::Error>> {
     let tokens = Lexer::new(input.clone()).tokens()?;
     let mut parser = Parser::new(tokens, input.clone()).unwrap();
-    let ast = AST::parse(&mut parser).unwrap();
+    let syntax = Syntax::parse(&mut parser).unwrap();
 
-    let (namespace, context) = Namespace::from(&ast);
+    let (namespace, context) = Namespace::from(&syntax);
 
-    check_namespace(&namespace, &context);
+    let kernel = Kernel::new(&namespace);
 
     Ok(())
 }

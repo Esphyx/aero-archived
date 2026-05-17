@@ -1,10 +1,7 @@
 use lexer::token::TokenKind;
 use parser::{error::ParseError, parser::Parser};
 
-use crate::{
-    expression::{Binder, Expression},
-    identifier::Identifier,
-};
+use crate::{expression::Expression, identifier::Identifier};
 
 #[derive(Debug)]
 pub struct Parameter {
