@@ -64,7 +64,7 @@ pub struct Kernel<'a> {
 }
 
 impl<'a> Kernel<'a> {
-    pub fn new(namespace: &'a Namespace) -> Self {
+    pub fn from(namespace: &'a Namespace) -> Self {
         Self { namespace }
     }
 

@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use parser::{error::ParseError, parser::Parser};
+use parser::parser::Parser;
 
 use crate::namespace::Namespace;
 
@@ -10,9 +10,9 @@ pub struct Syntax {
 }
 
 impl Syntax {
-    pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
-        Ok(Self {
-            namespace: Namespace::parse(parser)?,
-        })
+    pub fn parse(parser: &mut Parser) -> Self {
+        Self {
+            namespace: Namespace::parse(parser),
+        }
     }
 }

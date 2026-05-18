@@ -1,5 +1,6 @@
-use lexer::token::{Span, TokenKind};
-use parser::{error::ParseError, parser::Parser};
+use diagnostics::Span;
+use lexer::token::TokenKind;
+use parser::parser::Parser;
 
 #[derive(Clone, Debug)]
 pub struct Identifier {
@@ -8,18 +9,31 @@ pub struct Identifier {
 }
 
 impl Identifier {
-    pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
-        let token = parser.current();
+    pub fn parse(parser: &mut Parser) -> Self {
+        parser.expect_token(TokenKind::Identifier);
 
-        if token.kind != TokenKind::Identifier {
-            panic!("hi");
-        }
-
+        let token = match parser.peek().cloned() {
+            Some(tok) if tok.kind == TokenKind::Identifier => tok,
+            Some(tok) => {
+                parser.error("expected identifier");
+                tok
+            }
+            None => {
+                parser.error("expected identifier, found eof");
+                return Identifier {
+                    name: "_".into(),
+                    span: Span {
+                        start: Default::default(),
+                        end: Default::default(),
+                    },
+                };
+            }
+        };
         let span = token.span;
-        let name = parser.input[span.start..span.end()].to_string();
+        let name = token.lexeme.clone().unwrap_or("_".to_string());
 
         parser.advance();
-        Ok(Self { name, span })
+        Self { name, span }
     }
 }
 

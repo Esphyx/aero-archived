@@ -59,6 +59,7 @@ impl Context {
             Expression::App { func, arg } => {
                 Expr::construct_application(self.convert_term(func), self.convert_term(arg))
             }
+            Expression::Placeholder => todo!(),
         }
     }
 

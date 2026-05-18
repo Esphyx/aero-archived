@@ -1,6 +1,4 @@
-use std::fmt::Display;
-
-use crate::token::Span;
+use diagnostics::{Diagnostic, Location, Span};
 
 use super::token::{Token, TokenKind};
 
@@ -9,84 +7,110 @@ pub enum LexicalError {
     UnknownToken,
 }
 
-impl Display for LexicalError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+pub struct Cursor {
+    input: Vec<char>,
+    pos: Location,
+    diagnostics: Vec<Diagnostic>,
+}
+
+impl Cursor {
+    pub fn new(input: Vec<char>) -> Self {
+        Self {
+            input,
+            pos: Location::default(),
+            diagnostics: Vec::new(),
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.pos.index + 1).copied()
+    }
+
+    fn current(&self) -> Option<char> {
+        self.input.get(self.pos.index).copied()
+    }
+
+    fn advance(&mut self) {
+        if let Some(c) = self.current() {
+            self.pos.index += 1;
+            if c == '\n' {
+                self.pos.line += 1;
+                self.pos.column = 0;
+            } else {
+                self.pos.column += 1;
+            }
+        }
+    }
+
+    fn advance_n(&mut self, n: usize) {
+        for _ in 0..n {
+            self.advance();
+        }
+    }
+
+    fn starts_with(&self, s: &str) -> bool {
+        self.input[self.pos.index..]
+            .iter()
+            .zip(s.chars())
+            .all(|(a, b)| *a == b)
     }
 }
 
-impl std::error::Error for LexicalError {}
-
 pub struct Lexer {
-    input: Vec<char>,
-    position: usize,
+    cursor: Cursor,
 }
 
 impl Lexer {
     pub fn new(input: String) -> Self {
         let input = input.chars().collect();
-        Self { input, position: 0 }
-    }
-
-    fn current(&self) -> Option<char> {
-        self.input.get(self.position).copied()
-    }
-
-    fn advance(&mut self) {
-        self.position += 1;
-    }
-
-    fn advance_n(&mut self, n: usize) {
-        self.position += n;
-    }
-
-    fn starts_with(&self, s: &str) -> bool {
-        self.input[self.position..]
-            .iter()
-            .zip(s.chars())
-            .all(|(a, b)| *a == b)
+        Self {
+            cursor: Cursor::new(input),
+        }
     }
 
     fn identifier_or_keyword(&mut self) -> Token {
-        let mut id = String::new();
+        let start = self.cursor.pos;
 
-        while let Some(c) = self.current() {
+        let mut id = String::new();
+        while let Some(c) = self.cursor.current() {
             if c.is_alphanumeric() || c == '_' {
                 id.push(c);
-                self.advance();
+                self.cursor.advance();
             } else {
                 break;
             }
         }
 
+        let end = self.cursor.pos;
+
         let kind = TokenKind::from_str(&id).unwrap_or(TokenKind::Identifier);
 
-        Token::new(kind, Span::new(self.position - id.len(), id.len()))
+        let mut token = Token::new(kind, Span { start, end });
+        token.lexeme = Some(id);
+        token
     }
 
     fn skip_whitespace(&mut self) {
-        while matches!(self.current(), Some(c) if c.is_whitespace()) {
-            self.advance();
+        while matches!(self.cursor.current(), Some(c) if c.is_whitespace()) {
+            self.cursor.advance();
         }
     }
 
     fn comment(&mut self) -> Token {
-        let mut comment_text = String::new();
+        let start = self.cursor.pos;
 
-        let saved_position = self.position;
+        self.cursor.advance();
 
-        while let Some(c) = self.current() {
+        while let Some(c) = self.cursor.current() {
             if c == '\n' {
                 break;
             }
-            comment_text.push(c);
-            self.advance();
+            self.cursor.advance();
         }
 
-        Token::new(
-            TokenKind::Comment,
-            Span::new(saved_position - 1, comment_text.len() + 1),
-        )
+        let end = self.cursor.pos;
+
+        Token::new(TokenKind::Comment, Span { start, end })
     }
 
     pub fn tokens(&mut self) -> Result<Vec<Token>, LexicalError> {
@@ -108,45 +132,34 @@ impl Lexer {
     pub fn next_token(&mut self) -> Result<Token, LexicalError> {
         self.skip_whitespace();
 
-        let Some(c) = self.current() else {
-            return Ok(Token::new(TokenKind::EoF, Span::new(self.position, 0)));
+        let Some(c) = self.cursor.current() else {
+            let pos = self.cursor.pos;
+            return Ok(Token::new(
+                TokenKind::EoF,
+                Span {
+                    start: pos,
+                    end: pos,
+                },
+            ));
         };
 
-        if self.starts_with("->") {
-            self.advance_n(2);
-            return Ok(Token::new(
-                TokenKind::Arrow,
-                Span::new(self.position - 2, 2),
-            ));
+        let multi = [
+            ("->", TokenKind::Arrow),
+            ("=>", TokenKind::FatArrow),
+            (":=", TokenKind::Assign),
+        ];
+
+        for (pattern, kind) in multi {
+            if self.cursor.starts_with(pattern) {
+                let start = self.cursor.pos;
+                self.cursor.advance_n(pattern.len());
+                let end = self.cursor.pos;
+                return Ok(Token::new(kind, Span { start, end }));
+            }
         }
 
-        if self.starts_with("=>") {
-            self.advance_n(2);
-            return Ok(Token::new(
-                TokenKind::FatArrow,
-                Span::new(self.position - 2, 2),
-            ));
-        }
-
-        if self.starts_with("<-") {
-            self.advance_n(2);
-            return Ok(Token::new(
-                TokenKind::Assign,
-                Span::new(self.position - 2, 2),
-            ));
-        }
-
-        if self.starts_with("#") {
-            self.advance_n(1);
+        if c == '#' {
             return Ok(self.comment());
-        }
-
-        if self.starts_with(":=") {
-            self.advance_n(2);
-            return Ok(Token::new(
-                TokenKind::Assign,
-                Span::new(self.position - 2, 2),
-            ));
         }
 
         if c.is_alphabetic() || c == '_' {
@@ -169,8 +182,10 @@ impl Lexer {
             _ => return Err(LexicalError::UnknownToken),
         };
 
-        self.advance();
+        let start = self.cursor.pos;
+        self.cursor.advance();
+        let end = self.cursor.pos;
 
-        Ok(Token::new(kind, Span::new(self.position - 1, 1)))
+        Ok(Token::new(kind, Span { start, end }))
     }
 }

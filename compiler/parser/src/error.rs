@@ -1,21 +1,17 @@
-use lexer::token::{Token, TokenKind};
+use diagnostics::Span;
+use lexer::token::TokenKind;
 
 #[derive(Debug)]
 pub enum ParseErrorKind {
     UnexpectedToken {
         expected: TokenKind,
         found: TokenKind,
-        message: String,
+        span: Span,
     },
-    UnexpectedEof,
-    ExpectedIdentifier,
-    Custom(String),
+    EOF,
 }
 
 #[derive(Debug)]
 pub struct ParseError {
     pub kind: ParseErrorKind,
-    pub position: usize,
-    pub found: Option<Token>,
-    pub context: Vec<&'static str>,
 }

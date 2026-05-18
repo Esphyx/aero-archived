@@ -1,5 +1,5 @@
 use lexer::token::TokenKind;
-use parser::{error::ParseError, parser::Parser};
+use parser::parser::Parser;
 
 use crate::{function::Function, inductive::Inductive};
 
@@ -10,31 +10,31 @@ pub struct Namespace {
 }
 
 impl Namespace {
-    pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
+    pub fn parse(parser: &mut Parser) -> Self {
         let mut inductives = Vec::new();
         let mut functions = Vec::new();
 
-        while !matches!(parser.current().kind, TokenKind::EoF) {
-            let current_token = parser.current();
-            match current_token.kind {
+        while !matches!(parser.peek_kind(), TokenKind::EoF) {
+            match parser.peek_kind() {
                 TokenKind::Inductive => {
-                    inductives.push(Inductive::parse(parser)?);
+                    inductives.push(Inductive::parse(parser));
                 }
                 TokenKind::Fn => {
-                    functions.push(Function::parse(parser)?);
+                    functions.push(Function::parse(parser));
                 }
                 TokenKind::Comment => {
                     parser.advance();
                 }
                 _ => {
-                    panic!("Expected token!");
+                    parser.error("expected token");
+                    parser.advance();
                 }
             }
         }
 
-        Ok(Self {
+        Self {
             inductives,
             functions,
-        })
+        }
     }
 }

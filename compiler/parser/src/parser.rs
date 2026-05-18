@@ -1,11 +1,13 @@
+use diagnostics::{Diagnostic, Severity};
 use lexer::token::{Token, TokenKind};
 
-use crate::error::{ParseError, ParseErrorKind};
+use crate::error::ParseError;
 
 pub struct Parser {
-    tokens: Vec<Token>,
-    position: usize,
     pub input: String,
+    pub position: usize,
+    tokens: Vec<Token>,
+    diagnostics: Vec<Diagnostic>,
 }
 
 impl Parser {
@@ -14,48 +16,90 @@ impl Parser {
             tokens,
             position: 0,
             input,
+            diagnostics: Vec::new(),
         })
     }
 
-    pub fn error(&self, kind: ParseErrorKind) -> ParseError {
-        ParseError {
-            kind,
-            position: self.current().span.start,
-            found: Some(self.current().clone()),
-            context: Vec::new(),
-        }
+    pub fn peek(&self) -> Option<&Token> {
+        self.tokens.get(self.position)
     }
 
-    pub fn current(&self) -> &Token {
-        self.tokens.get(self.position).expect("Out of tokens")
+    pub fn peek_kind(&self) -> TokenKind {
+        self.tokens
+            .get(self.position)
+            .map(|t| t.kind)
+            .unwrap_or(TokenKind::EoF)
     }
 
     pub fn advance(&mut self) {
-        loop {
-            self.position += 1;
+        self.position += 1;
 
-            if !matches!(self.current().kind, TokenKind::Comment) {
+        while let Some(tok) = self.tokens.get(self.position) {
+            if tok.kind != TokenKind::Comment {
                 break;
+            }
+            self.position += 1;
+        }
+    }
+
+    pub fn synchronize(&mut self) {
+        while let Some(tok) = self.peek() {
+            match tok.kind {
+                TokenKind::Fn
+                | TokenKind::Inductive
+                | TokenKind::Match
+                | TokenKind::Lambda
+                | TokenKind::Forall
+                | TokenKind::EoF => break,
+
+                _ => self.advance(),
             }
         }
     }
 
-    pub fn expect_token(&mut self, expected: TokenKind) -> Result<(), ParseError> {
-        let current = self.current();
-        if current.kind == expected {
-            self.advance();
-            Ok(())
+    pub fn error(&mut self, message: impl Into<String>) {
+        if let Some(tok) = self.tokens.get(self.position) {
+            self.diagnostics.push(Diagnostic {
+                message: message.into(),
+                primary_span: Some(tok.span),
+                labels: Vec::new(),
+                severity: Severity::Error,
+            });
         } else {
-            Err(ParseError {
-                kind: ParseErrorKind::UnexpectedToken {
-                    expected,
-                    found: current.kind.clone(),
-                    message: format!("Expected {:?}, found {:?}", expected, current.kind),
-                },
-                position: current.span.start,
-                found: Some(current.clone()),
-                context: Vec::new(),
-            })
+            self.diagnostics.push(Diagnostic {
+                message: message.into(),
+                primary_span: None,
+                labels: Vec::new(),
+                severity: Severity::Error,
+            });
+        }
+    }
+
+    pub fn expect_token(&mut self, expected: TokenKind) {
+        match self.peek() {
+            Some(tok) if tok.kind == expected => {
+                self.advance();
+            }
+            Some(tok) => {
+                self.diagnostics.push(Diagnostic {
+                    message: format!(
+                        "expected `{}`, found `{}`",
+                        expected.to_str(),
+                        tok.kind.to_str()
+                    ),
+                    primary_span: Some(tok.span),
+                    labels: Vec::new(),
+                    severity: Severity::Error,
+                });
+            }
+            None => {
+                self.diagnostics.push(Diagnostic {
+                    message: "End of file".into(),
+                    primary_span: None,
+                    labels: Vec::new(),
+                    severity: Severity::Error,
+                });
+            }
         }
     }
 }

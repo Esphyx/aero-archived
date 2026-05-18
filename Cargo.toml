@@ -11,6 +11,7 @@ syntax = { path = "compiler/syntax" }
 hir = { path = "compiler/hir" }
 semantic = { path = "compiler/semantic" }
 visualizer = { path = "compiler/visualizer" }
+diagnostics = { path = "compiler/diagnostics" }
 
 [workspace]
 members = [
@@ -23,4 +24,5 @@ members = [
     "compiler/semantic",
     "compiler/visualizer",
     "lsp",
+    "compiler/diagnostics",
 ]

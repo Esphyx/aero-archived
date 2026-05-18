@@ -1,5 +1,5 @@
 use lexer::token::TokenKind;
-use parser::{error::ParseError, parser::Parser};
+use parser::parser::Parser;
 
 use crate::{expression::Expression, identifier::Identifier, parameter::Parameter};
 
@@ -12,36 +12,36 @@ pub struct Inductive {
 }
 
 impl Inductive {
-    pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
-        parser.expect_token(TokenKind::Inductive)?;
+    pub fn parse(parser: &mut Parser) -> Self {
+        parser.expect_token(TokenKind::Inductive);
 
-        let name = Identifier::parse(parser)?;
+        let name = Identifier::parse(parser);
 
-        let parameters = Parameter::parse_vec(parser)?;
+        let parameters = Parameter::parse_vec(parser);
 
-        let typ = Expression::parse_type_specifier(parser)?;
+        let typ = Expression::parse_type_specifier(parser);
 
-        parser.expect_token(TokenKind::Assign)?;
+        parser.expect_token(TokenKind::Assign);
 
         let mut constructors = Vec::new();
         while !(matches!(
-            parser.current().kind,
+            parser.peek_kind(),
             TokenKind::CloseBrace | TokenKind::SemiColon
         )) {
-            if matches!(parser.current().kind, TokenKind::Pipe) {
+            if matches!(parser.peek_kind(), TokenKind::Pipe) {
                 parser.advance();
             }
-            constructors.push(Constructor::parse(parser)?);
+            constructors.push(Constructor::parse(parser));
         }
 
-        parser.expect_token(TokenKind::SemiColon)?;
+        parser.expect_token(TokenKind::SemiColon);
 
-        Ok(Self {
+        Self {
             name,
             parameters,
             typ,
             constructors,
-        })
+        }
     }
 }
 
@@ -52,11 +52,11 @@ pub struct Constructor {
 }
 
 impl Constructor {
-    pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
-        let name = Identifier::parse(parser)?;
-        parser.expect_token(TokenKind::Colon)?;
-        let typ = Expression::parse(parser)?;
+    pub fn parse(parser: &mut Parser) -> Self {
+        let name = Identifier::parse(parser);
+        parser.expect_token(TokenKind::Colon);
+        let typ = Expression::parse(parser);
 
-        Ok(Self { name, typ })
+        Self { name, typ }
     }
 }

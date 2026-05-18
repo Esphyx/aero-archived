@@ -1,7 +1,7 @@
 use lexer::token::TokenKind;
-use parser::{error::ParseError, parser::Parser};
+use parser::parser::Parser;
 
-use crate::{identifier::Identifier, parameter::Parameter, expression::Expression};
+use crate::{expression::Expression, identifier::Identifier, parameter::Parameter};
 
 #[derive(Debug)]
 pub struct Function {
@@ -12,23 +12,23 @@ pub struct Function {
 }
 
 impl Function {
-    pub fn parse(parser: &mut Parser) -> Result<Self, ParseError> {
-        parser.expect_token(TokenKind::Fn)?;
-        let name = Identifier::parse(parser)?;
+    pub fn parse(parser: &mut Parser) -> Self {
+        parser.expect_token(TokenKind::Fn);
+        let name = Identifier::parse(parser);
 
-        let parameters = Parameter::parse_vec(parser)?;
+        let parameters = Parameter::parse_vec(parser);
 
-        let return_type = Expression::parse_type_specifier(parser)?;
+        let return_type = Expression::parse_type_specifier(parser);
 
-        parser.expect_token(TokenKind::OpenBrace)?;
-        let body = Expression::parse(parser)?;
-        parser.expect_token(TokenKind::CloseBrace)?;
+        parser.expect_token(TokenKind::OpenBrace);
+        let body = Expression::parse(parser);
+        parser.expect_token(TokenKind::CloseBrace);
 
-        Ok(Self {
+        Self {
             name,
             parameters,
             return_type,
             body,
-        })
+        }
     }
 }
